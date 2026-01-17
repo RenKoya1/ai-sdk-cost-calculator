@@ -1,23 +1,19 @@
 import { LanguageModelUsage } from "ai";
-import { getModelPricingByModelId, type ModelPricing } from "./prices";
+import { getModelPricingByModelId, type ModelPricing } from "../pricing";
+import type { CostBreakdown } from "./types";
+import { roundToMicroDollars } from "../shared/cost";
+import { getUsageTokenDetails } from "../shared/usage";
 
 const TOKENS_PER_MILLION = 1_000_000;
 
-export interface CostBreakdown {
-  inputCost: number;
-  outputCost: number;
-  cacheReadCost: number;
-  cacheWriteCost: number;
-  reasoningCost: number;
-  totalCost: number;
-  currency: "USD";
-  isLongContext: boolean;
-}
+export type { CostBreakdown } from "./types";
 
 export interface CalculateCostOptions {
   model: string;
   usage: LanguageModelUsage;
   customPricing?: ModelPricing;
+  /** Number of web search requests made (for grounding/live search) */
+  webSearchRequests?: number;
 }
 
 interface EffectivePricing {
@@ -27,15 +23,6 @@ interface EffectivePricing {
   cacheWritePer1MTokens: number;
   reasoningPer1MTokens: number;
   isLongContext: boolean;
-}
-
-interface UsageTokenDetails {
-  noCacheTokens: number;
-  cacheReadTokens: number;
-  cacheWriteTokens: number;
-  textTokens: number;
-  reasoningTokens: number;
-  totalInputTokens: number;
 }
 
 function getEffectivePricing(
@@ -80,50 +67,18 @@ function getEffectivePricing(
   };
 }
 
-function getUsageTokenDetails(usage: LanguageModelUsage): UsageTokenDetails {
-  const inputDetails = usage.inputTokenDetails;
-  const outputDetails = usage.outputTokenDetails;
-
-  let noCacheTokens = inputDetails?.noCacheTokens ?? 0;
-  let cacheReadTokens = inputDetails?.cacheReadTokens ?? 0;
-  let cacheWriteTokens = inputDetails?.cacheWriteTokens ?? 0;
-
-  let textTokens = outputDetails?.textTokens ?? 0;
-  let reasoningTokens = outputDetails?.reasoningTokens ?? 0;
-
-  if (!inputDetails && usage.inputTokens !== undefined) {
-    noCacheTokens = usage.inputTokens;
-  }
-
-  if (!outputDetails && usage.outputTokens !== undefined) {
-    textTokens = usage.outputTokens;
-  }
-
-  const totalInputTokens =
-    usage.inputTokens ?? noCacheTokens + cacheReadTokens + cacheWriteTokens;
-
-  return {
-    noCacheTokens,
-    cacheReadTokens,
-    cacheWriteTokens,
-    textTokens,
-    reasoningTokens,
-    totalInputTokens,
-  };
-}
-
 function costFromTokens(tokens: number, per1MTokens: number): number {
   return (tokens / TOKENS_PER_MILLION) * per1MTokens;
 }
 
 export function calculateCost(options: CalculateCostOptions): CostBreakdown {
-  const { model, usage, customPricing } = options;
+  const { model, usage, customPricing, webSearchRequests = 0 } = options;
 
   const pricing = customPricing ?? getModelPricingByModelId(model);
 
   if (!pricing) {
     throw new Error(
-      `Unknown model: ${model}. Use customPricing option or add the model to prices.ts`,
+      `Unknown model: ${model}. Use customPricing option or add the model to pricing/providers`,
     );
   }
 
@@ -160,8 +115,29 @@ export function calculateCost(options: CalculateCostOptions): CostBreakdown {
     effectivePricing.reasoningPer1MTokens,
   );
 
+  // Calculate web search cost
+  let webSearchCost = 0;
+  if (webSearchRequests > 0 && pricing.webSearchPer1kRequests) {
+    // Base per-request cost
+    webSearchCost = (webSearchRequests / 1000) * pricing.webSearchPer1kRequests;
+
+    // Some models charge fixed tokens per search request (e.g., OpenAI mini models charge 8k tokens)
+    if (pricing.webSearchTokensPerRequest) {
+      const searchTokens = webSearchRequests * pricing.webSearchTokensPerRequest;
+      webSearchCost += costFromTokens(
+        searchTokens,
+        effectivePricing.inputPer1MTokens,
+      );
+    }
+  }
+
   const totalCost =
-    inputCost + outputCost + cacheReadCost + cacheWriteCost + reasoningCost;
+    inputCost +
+    outputCost +
+    cacheReadCost +
+    cacheWriteCost +
+    reasoningCost +
+    webSearchCost;
 
   return {
     inputCost: roundToMicroDollars(inputCost),
@@ -169,14 +145,11 @@ export function calculateCost(options: CalculateCostOptions): CostBreakdown {
     cacheReadCost: roundToMicroDollars(cacheReadCost),
     cacheWriteCost: roundToMicroDollars(cacheWriteCost),
     reasoningCost: roundToMicroDollars(reasoningCost),
+    webSearchCost: roundToMicroDollars(webSearchCost),
     totalCost: roundToMicroDollars(totalCost),
     currency: "USD",
     isLongContext: effectivePricing.isLongContext,
   };
-}
-
-function roundToMicroDollars(value: number): number {
-  return Math.round(value * 1_000_000) / 1_000_000;
 }
 
 export function formatCost(cost: number, decimals: number = 6): string {
@@ -206,6 +179,9 @@ export function formatCostBreakdown(
   }
   if (result.reasoningCost > 0) {
     lines.push(`Reasoning:    ${formatCost(result.reasoningCost, decimals)}`);
+  }
+  if (result.webSearchCost > 0) {
+    lines.push(`Web Search:   ${formatCost(result.webSearchCost, decimals)}`);
   }
   lines.push(`Total:        ${formatCost(result.totalCost, decimals)}`);
 

@@ -1,18 +1,20 @@
 // Re-export types and pricing from modular files
-export type { ModelPricing, ProviderPricing } from "./prices/types";
+export type { ModelPricing, ProviderPricing } from "./types";
 
-export { openaiPricing } from "./prices/openai";
-export { anthropicPricing } from "./prices/anthropic";
-export { googlePricing } from "./prices/google";
-export { xaiPricing } from "./prices/xai";
-export { deepseekPricing } from "./prices/deepseek";
+export { openaiPricing } from "./providers/openai";
+export { anthropicPricing } from "./providers/anthropic";
+export { googlePricing } from "./providers/google";
+export { xaiPricing } from "./providers/xai";
+export { deepseekPricing } from "./providers/deepseek";
+export { perplexityPricing } from "./providers/perplexity";
 
-import { openaiPricing } from "./prices/openai";
-import { anthropicPricing } from "./prices/anthropic";
-import { googlePricing } from "./prices/google";
-import { xaiPricing } from "./prices/xai";
-import { deepseekPricing } from "./prices/deepseek";
-import type { ModelPricing, ProviderPricing } from "./prices/types";
+import { openaiPricing } from "./providers/openai";
+import { anthropicPricing } from "./providers/anthropic";
+import { googlePricing } from "./providers/google";
+import { xaiPricing } from "./providers/xai";
+import { deepseekPricing } from "./providers/deepseek";
+import { perplexityPricing } from "./providers/perplexity";
+import type { ModelPricing, ProviderPricing } from "./types";
 
 // Provider name to pricing map
 export const allPricing: Record<string, ProviderPricing> = {
@@ -21,6 +23,7 @@ export const allPricing: Record<string, ProviderPricing> = {
   google: googlePricing,
   xai: xaiPricing,
   deepseek: deepseekPricing,
+  perplexity: perplexityPricing,
 };
 
 // Combined flat pricing for all models
@@ -30,6 +33,7 @@ export const flatPricing: ProviderPricing = {
   ...googlePricing,
   ...xaiPricing,
   ...deepseekPricing,
+  ...perplexityPricing,
 };
 
 export function getModelPricing(

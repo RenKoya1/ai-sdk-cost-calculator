@@ -1,4 +1,4 @@
-import type { ProviderPricing } from "./types";
+import type { ProviderPricing } from "../types";
 
 // Source: https://claude.com/pricing (Jan 2026)
 export const anthropicPricing: ProviderPricing = {

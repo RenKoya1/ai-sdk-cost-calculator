@@ -12,6 +12,10 @@ export interface ModelPricing {
   longContextOutputPer1MTokens?: number;
   longContextCacheReadPer1MTokens?: number;
   longContextCacheWritePer1MTokens?: number;
+
+  // Web search pricing
+  webSearchPer1kRequests?: number; // Cost per 1,000 web search requests
+  webSearchTokensPerRequest?: number; // Fixed tokens charged per search (e.g., OpenAI charges 8k tokens)
 }
 
 export interface ProviderPricing {

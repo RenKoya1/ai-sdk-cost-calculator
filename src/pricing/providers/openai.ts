@@ -1,48 +1,62 @@
-import type { ProviderPricing } from "./types";
+import type { ProviderPricing } from "../types";
 
 // Source: https://openai.com/api/pricing/ (via pricepertoken.com 2026)
 export const openaiPricing: ProviderPricing = {
-  // GPT-4o
+  // GPT-4o (web search: $10/1k calls + tokens at model rate)
   "gpt-4o": {
     inputPer1MTokens: 2.5,
     outputPer1MTokens: 10,
     cacheReadPer1MTokens: 1.25,
+    webSearchPer1kRequests: 10,
   },
   "gpt-4o-2024-11-20": {
     inputPer1MTokens: 2.5,
     outputPer1MTokens: 10,
     cacheReadPer1MTokens: 1.25,
+    webSearchPer1kRequests: 10,
   },
   "gpt-4o-2024-08-06": {
     inputPer1MTokens: 2.5,
     outputPer1MTokens: 10,
     cacheReadPer1MTokens: 1.25,
+    webSearchPer1kRequests: 10,
   },
+  // GPT-4o-mini (web search: $10/1k calls + fixed 8k tokens per call)
   "gpt-4o-mini": {
     inputPer1MTokens: 0.15,
     outputPer1MTokens: 0.6,
     cacheReadPer1MTokens: 0.075,
+    webSearchPer1kRequests: 10,
+    webSearchTokensPerRequest: 8000,
   },
   "gpt-4o-mini-2024-07-18": {
     inputPer1MTokens: 0.15,
     outputPer1MTokens: 0.6,
     cacheReadPer1MTokens: 0.075,
+    webSearchPer1kRequests: 10,
+    webSearchTokensPerRequest: 8000,
   },
-  // GPT-4.1
+  // GPT-4.1 (web search: $10/1k calls + tokens at model rate)
   "gpt-4.1": {
     inputPer1MTokens: 2,
     outputPer1MTokens: 8,
     cacheReadPer1MTokens: 0.5,
+    webSearchPer1kRequests: 10,
   },
+  // GPT-4.1-mini (web search: $10/1k calls + fixed 8k tokens per call)
   "gpt-4.1-mini": {
     inputPer1MTokens: 0.4,
     outputPer1MTokens: 1.6,
     cacheReadPer1MTokens: 0.1,
+    webSearchPer1kRequests: 10,
+    webSearchTokensPerRequest: 8000,
   },
   "gpt-4.1-nano": {
     inputPer1MTokens: 0.1,
     outputPer1MTokens: 0.4,
     cacheReadPer1MTokens: 0.025,
+    webSearchPer1kRequests: 10,
+    webSearchTokensPerRequest: 8000,
   },
   // GPT-4 Turbo
   "gpt-4-turbo": {

@@ -1,4 +1,4 @@
-import type { ProviderPricing } from "./types";
+import type { ProviderPricing } from "../types";
 
 // Source: https://api-docs.deepseek.com/quick_start/pricing (Jan 2026)
 // DeepSeek uses cache hit/miss pricing model
