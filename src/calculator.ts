@@ -1,5 +1,7 @@
 import { LanguageModelUsage } from "ai";
-import { getModelPricing, type ModelPricing } from "./prices";
+import { getModelPricingByModelId, type ModelPricing } from "./prices";
+
+const TOKENS_PER_MILLION = 1_000_000;
 
 export interface CostBreakdown {
   inputCost: number;
@@ -13,8 +15,7 @@ export interface CostBreakdown {
 }
 
 export interface CalculateCostOptions {
-  provider: string;
-  modelId: string;
+  model: string;
   usage: LanguageModelUsage;
   customPricing?: ModelPricing;
 }
@@ -28,9 +29,18 @@ interface EffectivePricing {
   isLongContext: boolean;
 }
 
+interface UsageTokenDetails {
+  noCacheTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  textTokens: number;
+  reasoningTokens: number;
+  totalInputTokens: number;
+}
+
 function getEffectivePricing(
   pricing: ModelPricing,
-  inputTokens: number
+  inputTokens: number,
 ): EffectivePricing {
   const threshold = pricing.longContextThreshold ?? 200000;
   const isLongContext =
@@ -70,51 +80,88 @@ function getEffectivePricing(
   };
 }
 
-export function calculateCost(options: CalculateCostOptions): CostBreakdown {
-  const { provider, modelId, usage, customPricing } = options;
+function getUsageTokenDetails(usage: LanguageModelUsage): UsageTokenDetails {
+  const inputDetails = usage.inputTokenDetails;
+  const outputDetails = usage.outputTokenDetails;
 
-  const pricing = customPricing ?? getModelPricing(provider, modelId);
+  let noCacheTokens = inputDetails?.noCacheTokens ?? 0;
+  let cacheReadTokens = inputDetails?.cacheReadTokens ?? 0;
+  let cacheWriteTokens = inputDetails?.cacheWriteTokens ?? 0;
+
+  let textTokens = outputDetails?.textTokens ?? 0;
+  let reasoningTokens = outputDetails?.reasoningTokens ?? 0;
+
+  if (!inputDetails && usage.inputTokens !== undefined) {
+    noCacheTokens = usage.inputTokens;
+  }
+
+  if (!outputDetails && usage.outputTokens !== undefined) {
+    textTokens = usage.outputTokens;
+  }
+
+  const totalInputTokens =
+    usage.inputTokens ?? noCacheTokens + cacheReadTokens + cacheWriteTokens;
+
+  return {
+    noCacheTokens,
+    cacheReadTokens,
+    cacheWriteTokens,
+    textTokens,
+    reasoningTokens,
+    totalInputTokens,
+  };
+}
+
+function costFromTokens(tokens: number, per1MTokens: number): number {
+  return (tokens / TOKENS_PER_MILLION) * per1MTokens;
+}
+
+export function calculateCost(options: CalculateCostOptions): CostBreakdown {
+  const { model, usage, customPricing } = options;
+
+  const pricing = customPricing ?? getModelPricingByModelId(model);
 
   if (!pricing) {
     throw new Error(
-      `Unknown model: ${provider}/${modelId}. Use customPricing option or add the model to prices.ts`
+      `Unknown model: ${model}. Use customPricing option or add the model to prices.ts`,
     );
   }
 
-  // Extract token counts from details
-  const noCacheTokens = usage.inputTokenDetails?.noCacheTokens ?? 0;
-  const cacheReadTokens = usage.inputTokenDetails?.cacheReadTokens ?? 0;
-  const cacheWriteTokens = usage.inputTokenDetails?.cacheWriteTokens ?? 0;
-  const textTokens = usage.outputTokenDetails?.textTokens ?? 0;
-  const reasoningTokens = usage.outputTokenDetails?.reasoningTokens ?? 0;
-
-  // Total input tokens for long context threshold check
-  const totalInputTokens = usage.inputTokens ?? (noCacheTokens + cacheReadTokens);
+  const usageDetails = getUsageTokenDetails(usage);
 
   // Get effective pricing based on input token count
-  const effectivePricing = getEffectivePricing(pricing, totalInputTokens);
+  const effectivePricing = getEffectivePricing(
+    pricing,
+    usageDetails.totalInputTokens,
+  );
 
-  const inputCost =
-    (noCacheTokens / 1_000_000) * effectivePricing.inputPer1MTokens;
+  const inputCost = costFromTokens(
+    usageDetails.noCacheTokens,
+    effectivePricing.inputPer1MTokens,
+  );
 
-  const outputCost =
-    (textTokens / 1_000_000) * effectivePricing.outputPer1MTokens;
+  const outputCost = costFromTokens(
+    usageDetails.textTokens,
+    effectivePricing.outputPer1MTokens,
+  );
 
-  const cacheReadCost =
-    (cacheReadTokens / 1_000_000) * effectivePricing.cacheReadPer1MTokens;
+  const cacheReadCost = costFromTokens(
+    usageDetails.cacheReadTokens,
+    effectivePricing.cacheReadPer1MTokens,
+  );
 
-  const cacheWriteCost =
-    (cacheWriteTokens / 1_000_000) * effectivePricing.cacheWritePer1MTokens;
+  const cacheWriteCost = costFromTokens(
+    usageDetails.cacheWriteTokens,
+    effectivePricing.cacheWritePer1MTokens,
+  );
 
-  const reasoningCost =
-    (reasoningTokens / 1_000_000) * effectivePricing.reasoningPer1MTokens;
+  const reasoningCost = costFromTokens(
+    usageDetails.reasoningTokens,
+    effectivePricing.reasoningPer1MTokens,
+  );
 
   const totalCost =
-    inputCost +
-    outputCost +
-    cacheReadCost +
-    cacheWriteCost +
-    reasoningCost;
+    inputCost + outputCost + cacheReadCost + cacheWriteCost + reasoningCost;
 
   return {
     inputCost: roundToMicroDollars(inputCost),
@@ -138,7 +185,7 @@ export function formatCost(cost: number, decimals: number = 6): string {
 
 export function formatCostBreakdown(
   result: CostBreakdown,
-  decimals: number = 6
+  decimals: number = 6,
 ): string {
   const lines: string[] = [];
 

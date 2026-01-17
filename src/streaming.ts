@@ -11,13 +11,12 @@ export interface CostTracker {
 }
 
 export interface CreateCostTrackerOptions {
-  provider: string;
-  modelId: string;
+  model: string;
   customPricing?: ModelPricing;
 }
 
 export function createCostTracker(options: CreateCostTrackerOptions): CostTracker {
-  const { provider, modelId, customPricing } = options;
+  const { model, customPricing } = options;
 
   // Track detail fields directly
   let totalNoCacheTokens = 0;
@@ -29,17 +28,29 @@ export function createCostTracker(options: CreateCostTrackerOptions): CostTracke
 
   return {
     addUsage(usage: LanguageModelUsage): void {
-      totalNoCacheTokens += usage.inputTokenDetails?.noCacheTokens ?? 0;
-      totalCacheReadTokens += usage.inputTokenDetails?.cacheReadTokens ?? 0;
-      totalCacheWriteTokens += usage.inputTokenDetails?.cacheWriteTokens ?? 0;
-      totalTextTokens += usage.outputTokenDetails?.textTokens ?? 0;
-      totalReasoningTokens += usage.outputTokenDetails?.reasoningTokens ?? 0;
+      const inputDetails = usage.inputTokenDetails;
+      if (inputDetails) {
+        totalNoCacheTokens += inputDetails.noCacheTokens ?? 0;
+        totalCacheReadTokens += inputDetails.cacheReadTokens ?? 0;
+        totalCacheWriteTokens += inputDetails.cacheWriteTokens ?? 0;
+      } else if (usage.inputTokens !== undefined) {
+        totalNoCacheTokens += usage.inputTokens;
+      }
+
+      const outputDetails = usage.outputTokenDetails;
+      if (outputDetails) {
+        totalTextTokens += outputDetails.textTokens ?? 0;
+        totalReasoningTokens += outputDetails.reasoningTokens ?? 0;
+      } else if (usage.outputTokens !== undefined) {
+        totalTextTokens += usage.outputTokens;
+      }
 
       requestCount++;
     },
 
     getTotalUsage(): LanguageModelUsage {
-      const inputTokens = totalNoCacheTokens + totalCacheReadTokens;
+      const inputTokens =
+        totalNoCacheTokens + totalCacheReadTokens + totalCacheWriteTokens;
       const outputTokens = totalTextTokens + totalReasoningTokens;
 
       return {
@@ -60,8 +71,7 @@ export function createCostTracker(options: CreateCostTrackerOptions): CostTracke
 
     getTotalCost(): CostBreakdown {
       return calculateCost({
-        provider,
-        modelId,
+        model,
         usage: this.getTotalUsage(),
         customPricing,
       });
@@ -83,8 +93,7 @@ export function createCostTracker(options: CreateCostTrackerOptions): CostTracke
 }
 
 export interface StreamCostOptions {
-  provider: string;
-  modelId: string;
+  model: string;
   customPricing?: ModelPricing;
   onCost?: (cost: CostBreakdown, usage: LanguageModelUsage) => void;
 }
@@ -97,8 +106,7 @@ export async function calculateStreamCost<T extends { usage: LanguageModelUsage 
   const usage = result.usage;
 
   const cost = calculateCost({
-    provider: options.provider,
-    modelId: options.modelId,
+    model: options.model,
     usage,
     customPricing: options.customPricing,
   });

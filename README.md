@@ -37,8 +37,7 @@ const result = await generateText({
 });
 
 const cost = calculateCost({
-  provider: "openai",
-  modelId: "gpt-4o",
+  model: "gpt-4o",
   usage: result.usage,
 });
 
@@ -56,16 +55,17 @@ Calculate the cost for a single API request.
 import { calculateCost } from "ai-sdk-cost-calculator";
 
 const cost = calculateCost({
-  provider: "anthropic",
-  modelId: "claude-sonnet-4-5",
+  model: "claude-sonnet-4-5",
   usage: {
     inputTokens: 1000,
     outputTokens: 500,
     inputTokenDetails: {
+      noCacheTokens: 700,
       cacheReadTokens: 200,
       cacheWriteTokens: 100,
     },
     outputTokenDetails: {
+      textTokens: 500,
       reasoningTokens: 0,
     },
   },
@@ -86,25 +86,24 @@ console.log(cost);
 
 #### Options
 
-| Property | Type | Required | Description |
-|----------|------|----------|-------------|
-| `provider` | `string` | Yes | Provider name: `"openai"`, `"anthropic"`, `"google"`, `"xai"`, `"deepseek"` |
-| `modelId` | `string` | Yes | Model identifier (e.g., `"gpt-4o"`, `"claude-sonnet-4-5"`) |
-| `usage` | `LanguageModelUsage` | Yes | Token usage from AI SDK |
-| `customPricing` | `ModelPricing` | No | Override default pricing |
+| Property        | Type                 | Required | Description                                                |
+| --------------- | -------------------- | -------- | ---------------------------------------------------------- |
+| `model`         | `string`             | Yes      | Model identifier (e.g., `"gpt-4o"`, `"claude-sonnet-4-5"`) |
+| `usage`         | `LanguageModelUsage` | Yes      | Token usage from AI SDK                                    |
+| `customPricing` | `ModelPricing`       | No       | Override default pricing                                   |
 
 #### Return Value: `CostBreakdown`
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `inputCost` | `number` | Cost for input tokens (excluding cache) |
-| `outputCost` | `number` | Cost for output tokens (excluding reasoning) |
-| `cacheReadCost` | `number` | Cost for cached input tokens |
-| `cacheWriteCost` | `number` | Cost for writing to cache |
-| `reasoningCost` | `number` | Cost for reasoning tokens |
-| `totalCost` | `number` | Sum of all costs |
-| `currency` | `"USD"` | Always USD |
-| `isLongContext` | `boolean` | Whether long context pricing was applied |
+| Property         | Type      | Description                                  |
+| ---------------- | --------- | -------------------------------------------- |
+| `inputCost`      | `number`  | Cost for input tokens (excluding cache)      |
+| `outputCost`     | `number`  | Cost for output tokens (excluding reasoning) |
+| `cacheReadCost`  | `number`  | Cost for cached input tokens                 |
+| `cacheWriteCost` | `number`  | Cost for writing to cache                    |
+| `reasoningCost`  | `number`  | Cost for reasoning tokens                    |
+| `totalCost`      | `number`  | Sum of all costs                             |
+| `currency`       | `"USD"`   | Always USD                                   |
+| `isLongContext`  | `boolean` | Whether long context pricing was applied     |
 
 ### `formatCost(cost, decimals?)`
 
@@ -113,8 +112,8 @@ Format a cost value as a currency string.
 ```typescript
 import { formatCost } from "ai-sdk-cost-calculator";
 
-formatCost(0.0015);      // "$0.001500"
-formatCost(0.0015, 4);   // "$0.0015"
+formatCost(0.0015); // "$0.001500"
+formatCost(0.0015, 4); // "$0.0015"
 ```
 
 ### `formatCostBreakdown(breakdown, decimals?)`
@@ -140,8 +139,7 @@ Track cumulative costs across multiple requests.
 import { createCostTracker } from "ai-sdk-cost-calculator";
 
 const tracker = createCostTracker({
-  provider: "openai",
-  modelId: "gpt-4o",
+  model: "gpt-4o",
 });
 
 // Add usage from multiple requests
@@ -171,8 +169,7 @@ const stream = await streamText({
 });
 
 const cost = await calculateStreamCost(stream, {
-  provider: "openai",
-  modelId: "gpt-4o",
+  model: "gpt-4o",
   onCost: (cost, usage) => {
     console.log(`Stream completed: ${formatCost(cost.totalCost)}`);
   },
@@ -220,6 +217,7 @@ const models = getAllSupportedModels();
 ## Supported Models
 
 ### OpenAI (23 models)
+
 - GPT-4o, GPT-4o-mini
 - GPT-4.1, GPT-4.1-mini, GPT-4.1-nano
 - GPT-4 Turbo, GPT-4, GPT-4-32k
@@ -229,6 +227,7 @@ const models = getAllSupportedModels();
 - o4-mini
 
 ### Anthropic (23 models)
+
 - Claude Opus 4.5, Sonnet 4.5, Haiku 4.5
 - Claude Opus 4.1, Sonnet 4, Opus 4
 - Claude 3.5 Sonnet, 3.5 Haiku
@@ -236,12 +235,14 @@ const models = getAllSupportedModels();
 - All dated variants (e.g., `claude-3-5-sonnet-20241022`)
 
 ### Google Gemini (17 models)
+
 - Gemini 3 Pro, 3 Flash
 - Gemini 2.5 Pro, 2.5 Flash, 2.5 Flash-Lite
 - Gemini 2.0 Flash, 2.0 Flash-Lite
 - Gemini 1.5 Pro, 1.5 Flash, 1.5 Flash-8B
 
 ### xAI Grok (12 models)
+
 - Grok 4, Grok 4-0709
 - Grok 4 Fast (reasoning/non-reasoning)
 - Grok 4.1 Fast (reasoning/non-reasoning)
@@ -250,6 +251,7 @@ const models = getAllSupportedModels();
 - Grok 2, Grok 2 Vision
 
 ### DeepSeek (10 models)
+
 - DeepSeek Chat (V3, V3.2)
 - DeepSeek Reasoner (R1)
 - DeepSeek R1 Distill variants
@@ -259,12 +261,12 @@ const models = getAllSupportedModels();
 
 Some models have tiered pricing based on input token count:
 
-| Model | Threshold | Standard | Long Context |
-|-------|-----------|----------|--------------|
-| Claude Sonnet 4.5 | 200K | $3/$15 | $6/$22.50 |
-| Gemini 2.5 Pro | 200K | $1.25/$10 | $2.50/$15 |
-| Gemini 1.5 Pro | 128K | $1.25/$5 | $2.50/$10 |
-| Grok 4 Fast | 128K | $0.20/$0.50 | $0.40/$1.00 |
+| Model             | Threshold | Standard    | Long Context |
+| ----------------- | --------- | ----------- | ------------ |
+| Claude Sonnet 4.5 | 200K      | $3/$15      | $6/$22.50    |
+| Gemini 2.5 Pro    | 200K      | $1.25/$10   | $2.50/$15    |
+| Gemini 1.5 Pro    | 128K      | $1.25/$5    | $2.50/$10    |
+| Grok 4 Fast       | 128K      | $0.20/$0.50 | $0.40/$1.00  |
 
 The calculator automatically applies the correct pricing tier based on input token count.
 
@@ -274,11 +276,10 @@ Override default pricing for any model:
 
 ```typescript
 const cost = calculateCost({
-  provider: "openai",
-  modelId: "gpt-4o",
+  model: "gpt-4o",
   usage: result.usage,
   customPricing: {
-    inputPer1MTokens: 2.0,  // Custom rate
+    inputPer1MTokens: 2.0, // Custom rate
     outputPer1MTokens: 8.0,
     cacheReadPer1MTokens: 1.0,
   },
