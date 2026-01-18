@@ -14,6 +14,12 @@ export interface CalculateCostOptions {
   customPricing?: ModelPricing;
   /** Number of web search requests made (for grounding/live search) */
   webSearchRequests?: number;
+  /** Number of Google Maps API requests made */
+  googleMapsRequests?: number;
+  /** Number of images generated */
+  imageGenerations?: number;
+  /** Image size/quality for pricing lookup (e.g., "1024x1024", "hd-1024x1024") */
+  imageSize?: string;
 }
 
 interface EffectivePricing {
@@ -72,7 +78,15 @@ function costFromTokens(tokens: number, per1MTokens: number): number {
 }
 
 export function calculateCost(options: CalculateCostOptions): CostBreakdown {
-  const { model, usage, customPricing, webSearchRequests = 0 } = options;
+  const {
+    model,
+    usage,
+    customPricing,
+    webSearchRequests = 0,
+    googleMapsRequests = 0,
+    imageGenerations = 0,
+    imageSize,
+  } = options;
 
   const pricing = customPricing ?? getModelPricingByModelId(model);
 
@@ -131,13 +145,32 @@ export function calculateCost(options: CalculateCostOptions): CostBreakdown {
     }
   }
 
+  // Calculate Google Maps cost
+  let googleMapsCost = 0;
+  if (googleMapsRequests > 0 && pricing.googleMapsPer1kRequests) {
+    googleMapsCost = (googleMapsRequests / 1000) * pricing.googleMapsPer1kRequests;
+  }
+
+  // Calculate image generation cost
+  let imageGenerationCost = 0;
+  if (imageGenerations > 0) {
+    // Try to get price for specific size/quality, fall back to default
+    let pricePerImage = pricing.imageGenerationPerImage ?? 0;
+    if (imageSize && pricing.imageGenerationPricing?.[imageSize]) {
+      pricePerImage = pricing.imageGenerationPricing[imageSize];
+    }
+    imageGenerationCost = imageGenerations * pricePerImage;
+  }
+
   const totalCost =
     inputCost +
     outputCost +
     cacheReadCost +
     cacheWriteCost +
     reasoningCost +
-    webSearchCost;
+    webSearchCost +
+    googleMapsCost +
+    imageGenerationCost;
 
   return {
     inputCost: roundToMicroDollars(inputCost),
@@ -146,6 +179,8 @@ export function calculateCost(options: CalculateCostOptions): CostBreakdown {
     cacheWriteCost: roundToMicroDollars(cacheWriteCost),
     reasoningCost: roundToMicroDollars(reasoningCost),
     webSearchCost: roundToMicroDollars(webSearchCost),
+    googleMapsCost: roundToMicroDollars(googleMapsCost),
+    imageGenerationCost: roundToMicroDollars(imageGenerationCost),
     totalCost: roundToMicroDollars(totalCost),
     currency: "USD",
     isLongContext: effectivePricing.isLongContext,
@@ -182,6 +217,12 @@ export function formatCostBreakdown(
   }
   if (result.webSearchCost > 0) {
     lines.push(`Web Search:   ${formatCost(result.webSearchCost, decimals)}`);
+  }
+  if (result.googleMapsCost > 0) {
+    lines.push(`Google Maps:  ${formatCost(result.googleMapsCost, decimals)}`);
+  }
+  if (result.imageGenerationCost > 0) {
+    lines.push(`Image Gen:    ${formatCost(result.imageGenerationCost, decimals)}`);
   }
   lines.push(`Total:        ${formatCost(result.totalCost, decimals)}`);
 

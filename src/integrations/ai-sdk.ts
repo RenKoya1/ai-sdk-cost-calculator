@@ -3,6 +3,11 @@ import { calculateCost } from "../core/calculator";
 import type { CostBreakdown } from "../core/types";
 import type { ModelPricing } from "../pricing";
 import { addCostBreakdowns, emptyCostBreakdown } from "../shared/cost";
+import {
+  detectRequestsFromResult,
+  type DetectOptions,
+  type ResultWithToolCalls,
+} from "../shared/detect-requests";
 import { getModelId } from "../shared/model";
 
 export { getModelId };
@@ -30,11 +35,17 @@ export interface FinishResultWithCost {
 /**
  * Options for cost-aware wrappers
  */
-export interface CostAwareOptions {
+export interface CostAwareOptions extends DetectOptions {
   /** Custom pricing override */
   customPricing?: ModelPricing;
   /** Number of web search requests */
   webSearchRequests?: number;
+  /** Number of Google Maps API requests */
+  googleMapsRequests?: number;
+  /** Number of images generated */
+  imageGenerations?: number;
+  /** Image size/quality for pricing lookup */
+  imageSize?: string;
   /** Callback when cost is calculated */
   onCost?: (cost: CostBreakdown, usage: LanguageModelUsage) => void;
 }
@@ -65,11 +76,27 @@ export function withCost<T extends { usage: LanguageModelUsage }>(
   const modelId = getModelId(model);
 
   return async (result: T) => {
+    let webSearchRequests = options?.webSearchRequests;
+    let googleMapsRequests = options?.googleMapsRequests;
+    let imageGenerations = options?.imageGenerations;
+
+    // Auto-detect tool usage (enabled by default)
+    const detected = detectRequestsFromResult(
+      result as unknown as ResultWithToolCalls,
+      options,
+    );
+    webSearchRequests = webSearchRequests ?? detected.webSearchRequests;
+    googleMapsRequests = googleMapsRequests ?? detected.googleMapsRequests;
+    imageGenerations = imageGenerations ?? detected.imageGenerations;
+
     const cost = calculateCost({
       model: modelId,
       usage: result.usage,
       customPricing: options?.customPricing,
-      webSearchRequests: options?.webSearchRequests,
+      webSearchRequests,
+      googleMapsRequests,
+      imageGenerations,
+      imageSize: options?.imageSize,
     });
 
     if (options?.onCost) {
@@ -201,11 +228,27 @@ export function createCostAwareAI(
       const modelId = getModelId(model);
 
       return async (result: T) => {
+        let webSearchRequests = opts?.webSearchRequests;
+        let googleMapsRequests = opts?.googleMapsRequests;
+        let imageGenerations = opts?.imageGenerations;
+
+        // Auto-detect tool usage (enabled by default)
+        const detected = detectRequestsFromResult(
+          result as unknown as ResultWithToolCalls,
+          opts,
+        );
+        webSearchRequests = webSearchRequests ?? detected.webSearchRequests;
+        googleMapsRequests = googleMapsRequests ?? detected.googleMapsRequests;
+        imageGenerations = imageGenerations ?? detected.imageGenerations;
+
         const cost = calculateCost({
           model: modelId,
           usage: result.usage,
           customPricing: customPricing[modelId] ?? opts?.customPricing,
-          webSearchRequests: opts?.webSearchRequests,
+          webSearchRequests,
+          googleMapsRequests,
+          imageGenerations,
+          imageSize: opts?.imageSize,
         });
 
         track(modelId, cost);
@@ -232,6 +275,9 @@ export function createCostAwareAI(
         usage,
         customPricing: customPricing[modelId] ?? opts?.customPricing,
         webSearchRequests: opts?.webSearchRequests,
+        googleMapsRequests: opts?.googleMapsRequests,
+        imageGenerations: opts?.imageGenerations,
+        imageSize: opts?.imageSize,
       });
 
       track(modelId, cost);
@@ -298,5 +344,8 @@ export function getCost(
     usage,
     customPricing: options?.customPricing,
     webSearchRequests: options?.webSearchRequests,
+    googleMapsRequests: options?.googleMapsRequests,
+    imageGenerations: options?.imageGenerations,
+    imageSize: options?.imageSize,
   });
 }

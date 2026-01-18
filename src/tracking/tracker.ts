@@ -3,6 +3,11 @@ import { calculateCost } from "../core/calculator";
 import type { CostBreakdown } from "../core/types";
 import type { ModelPricing } from "../pricing";
 import { addCostBreakdowns, roundCostBreakdown } from "../shared/cost";
+import {
+  detectRequestsFromResult,
+  type DetectOptions,
+  type ResultWithToolCalls,
+} from "../shared/detect-requests";
 import { getModelId } from "../shared/model";
 import {
   addUsageToTotals,
@@ -14,9 +19,15 @@ import {
 /**
  * Options for adding usage to the tracker
  */
-export interface AddUsageOptions {
+export interface AddUsageOptions extends DetectOptions {
   /** Number of web search requests made */
   webSearchRequests?: number;
+  /** Number of Google Maps API requests made */
+  googleMapsRequests?: number;
+  /** Number of images generated */
+  imageGenerations?: number;
+  /** Image size/quality for pricing lookup */
+  imageSize?: string;
 }
 
 /**
@@ -100,6 +111,8 @@ export interface CreateMultiModelTrackerOptions {
 interface ModelTrackingData {
   totals: UsageTokenTotals;
   webSearchRequests: number;
+  googleMapsRequests: number;
+  imageGenerations: number;
   requestCount: number;
 }
 
@@ -107,6 +120,8 @@ function createEmptyTrackingData(): ModelTrackingData {
   return {
     totals: createEmptyUsageTotals(),
     webSearchRequests: 0,
+    googleMapsRequests: 0,
+    imageGenerations: 0,
     requestCount: 0,
   };
 }
@@ -155,15 +170,20 @@ export function createMultiModelTracker(
     addUsageToTotals(data.totals, usage);
 
     data.webSearchRequests += opts?.webSearchRequests ?? 0;
+    data.googleMapsRequests += opts?.googleMapsRequests ?? 0;
+    data.imageGenerations += opts?.imageGenerations ?? 0;
     data.requestCount++;
   }
 
-  function calculateModelCost(model: string, data: ModelTrackingData): CostBreakdown {
+  function calculateModelCost(model: string, data: ModelTrackingData, imageSize?: string): CostBreakdown {
     return calculateCost({
       model,
       usage: trackingDataToUsage(data),
       customPricing: customPricing[model],
       webSearchRequests: data.webSearchRequests,
+      googleMapsRequests: data.googleMapsRequests,
+      imageGenerations: data.imageGenerations,
+      imageSize,
     });
   }
 
@@ -194,7 +214,21 @@ export function createMultiModelTracker(
       const modelId = getModelId(model);
 
       return async (result: T) => {
-        const cost = this.add(modelId, result.usage, opts);
+        let finalOpts = opts;
+
+        // Auto-detect tool usage (enabled by default)
+        const detected = detectRequestsFromResult(
+          result as unknown as ResultWithToolCalls,
+          opts,
+        );
+        finalOpts = {
+          ...opts,
+          webSearchRequests: opts?.webSearchRequests ?? detected.webSearchRequests,
+          googleMapsRequests: opts?.googleMapsRequests ?? detected.googleMapsRequests,
+          imageGenerations: opts?.imageGenerations ?? detected.imageGenerations,
+        };
+
+        const cost = this.add(modelId, result.usage, finalOpts);
 
         if (callback) {
           await callback({ ...result, cost });
@@ -235,6 +269,8 @@ export function createMultiModelTracker(
         cacheWriteCost: 0,
         reasoningCost: 0,
         webSearchCost: 0,
+        googleMapsCost: 0,
+        imageGenerationCost: 0,
         totalCost: 0,
         currency: "USD",
         isLongContext: false,

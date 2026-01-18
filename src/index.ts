@@ -39,6 +39,18 @@ export {
   type FinishResultWithCost,
 } from "./integrations/ai-sdk";
 
+// Auto-detection utilities
+export {
+  detectRequestsFromResult,
+  withDetectedRequests,
+  DEFAULT_WEB_SEARCH_TOOLS,
+  DEFAULT_GOOGLE_MAPS_TOOLS,
+  DEFAULT_IMAGE_GENERATION_TOOLS,
+  type DetectedRequests,
+  type DetectOptions,
+  type ResultWithToolCalls,
+} from "./shared/detect-requests";
+
 // Pricing data
 export {
   getModelPricing,

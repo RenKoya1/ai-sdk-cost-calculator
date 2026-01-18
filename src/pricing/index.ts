@@ -1,5 +1,5 @@
 // Re-export types and pricing from modular files
-export type { ModelPricing, ProviderPricing } from "./types";
+export type { ModelPricing, ProviderPricing, ImageGenerationPricing } from "./types";
 
 export { openaiPricing } from "./providers/openai";
 export { anthropicPricing } from "./providers/anthropic";

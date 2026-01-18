@@ -9,6 +9,9 @@ Cost calculator for [Vercel AI SDK](https://sdk.vercel.ai/) token usage. Calcula
 - **Session tracking**: Track costs across multiple calls with `createCostAwareAI()`
 - **Multi-model tracking**: Track costs across different models in a single tracker
 - **Web search pricing**: Calculate costs for grounding/search features
+- **Google Maps pricing**: Calculate costs for Google Maps API requests
+- **Image generation pricing**: Calculate costs for DALL-E, Imagen, and other image models
+- **Auto-detection**: Automatically detect web search/maps/image generation tool calls from results
 - **Long context pricing**: Automatic tier-based pricing (e.g., Claude Sonnet 4.5 >200K tokens)
 - **Prompt caching**: Separate pricing for cache reads and writes
 - **Reasoning tokens**: Support for o1/o3/R1 reasoning model costs
@@ -187,31 +190,139 @@ console.log(`Models: ${tracker.getModels().join(", ")}`);
 tracker.reset();
 ```
 
-## Web Search Costs
+## Web Search & Google Maps Costs
 
-Calculate costs including web search/grounding features.
+Calculate costs including web search/grounding and Google Maps features.
 
 ```typescript
 const cost = calculateCost({
-  model: "gpt-4o",
+  model: "gemini-2.0-flash",
   usage: result.usage,
-  webSearchRequests: 10, // Number of web searches
+  webSearchRequests: 10,   // Number of web searches
+  googleMapsRequests: 5,   // Number of Google Maps API calls
 });
 
-console.log(cost.webSearchCost); // $0.10 for 10 searches
+console.log(cost.webSearchCost);   // $0.14 for 10 searches
+console.log(cost.googleMapsCost);  // $0.035 for 5 maps requests
 ```
 
-### Web Search Pricing by Provider
+### Auto-Detection from Tool Calls
 
-| Provider      | Model            | Cost per 1k searches | Notes                      |
-| ------------- | ---------------- | -------------------- | -------------------------- |
-| **OpenAI**    | GPT-4o, GPT-4.1  | $10                  | + tokens at model rate     |
-| **OpenAI**    | GPT-4o-mini      | $10                  | + 8k tokens per search     |
-| **Google**    | Gemini Flash     | $14                  | Grounding with Google      |
-| **Google**    | Gemini Pro       | $35                  | Grounding with Google      |
-| **xAI**       | Grok models      | $5                   | Web Search / X Search      |
-| **Perplexity** | Sonar           | $5                   | Search-native              |
-| **Perplexity** | Sonar Pro       | $6                   | Search-native              |
+Automatically detect web search and Google Maps usage from AI SDK results:
+
+```typescript
+import { createTracker } from "ai-sdk-cost-calculator";
+
+const tracker = createTracker();
+
+await generateText({
+  model: google("gemini-2.0-flash"),
+  prompt: "Find coffee shops near Tokyo Station",
+  tools: { web_search: mySearchTool, places: myPlacesTool },
+  onFinish: tracker.onFinish("gemini-2.0-flash", undefined, {
+    webSearchTools: [],  // Use default tool names for detection
+  }),
+});
+
+// Or add custom tool names
+await generateText({
+  model: openai("gpt-4o"),
+  prompt: "Search the web",
+  tools: { my_custom_search: customSearchTool },
+  onFinish: tracker.onFinish("gpt-4o", undefined, {
+    webSearchTools: ["my_custom_search"],  // Add to defaults
+  }),
+});
+```
+
+#### Using `detectRequestsFromResult` Directly
+
+```typescript
+import { detectRequestsFromResult, calculateCost } from "ai-sdk-cost-calculator";
+
+const result = await generateText({
+  model: google("gemini-2.0-flash"),
+  prompt: "What's the weather?",
+  tools: { web_search: searchTool },
+});
+
+// Detect tool usage
+const { webSearchRequests, googleMapsRequests } = detectRequestsFromResult(result, {
+  webSearchTools: ["my_search"],  // Optional: add custom tool names
+});
+
+const cost = calculateCost({
+  model: "gemini-2.0-flash",
+  usage: result.usage,
+  webSearchRequests,
+  googleMapsRequests,
+});
+```
+
+#### Default Tool Names
+
+The following tool names are detected by default:
+
+**Web Search**: `web_search`, `webSearch`, `google_search`, `googleSearch`, `grounding`, `web_search_preview`, `tavily_search`, `brave_search`, `bing_search`, `duckduckgo_search`
+
+**Google Maps**: `google_maps`, `googleMaps`, `place_search`, `placeSearch`, `geocode`, `places`
+
+### Pricing by Provider
+
+| Provider       | Model            | Web Search (/1k) | Google Maps (/1k) | Notes                  |
+| -------------- | ---------------- | ---------------- | ----------------- | ---------------------- |
+| **OpenAI**     | GPT-4o, GPT-4.1  | $10              | -                 | + tokens at model rate |
+| **OpenAI**     | GPT-4o-mini      | $10              | -                 | + 8k tokens per search |
+| **Google**     | Gemini Flash     | $14              | $7                | Grounding with Google  |
+| **Google**     | Gemini Pro       | $35              | $7                | Grounding with Google  |
+| **xAI**        | Grok models      | $5               | -                 | Web Search / X Search  |
+| **Perplexity** | Sonar            | $5               | -                 | Search-native          |
+| **Perplexity** | Sonar Pro        | $6               | -                 | Search-native          |
+
+## Image Generation Costs
+
+Calculate costs for image generation models like DALL-E and Imagen.
+
+```typescript
+const cost = calculateCost({
+  model: "dall-e-3",
+  usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+  imageGenerations: 2,        // Number of images
+  imageSize: "hd-1024x1024",  // Size/quality for pricing lookup
+});
+
+console.log(cost.imageGenerationCost);  // $0.16 for 2 HD images
+```
+
+### Image Generation Pricing
+
+| Provider   | Model             | Default (/image) | Size Options                                      |
+| ---------- | ----------------- | ---------------- | ------------------------------------------------- |
+| **OpenAI** | DALL-E 3          | $0.04            | 1024x1024: $0.04, 1024x1792: $0.08, hd-*: $0.08-$0.12 |
+| **OpenAI** | DALL-E 2          | $0.02            | 1024x1024: $0.02, 512x512: $0.018, 256x256: $0.016 |
+| **OpenAI** | gpt-image-1       | $0.04            | 1024x1024: $0.04, 1536x1024: $0.08                |
+| **Google** | Imagen 3          | $0.04            | 1024x1024: $0.04, 1536x1536: $0.08                |
+| **Google** | Imagen 3 Fast     | $0.02            | 1024x1024: $0.02, 1536x1536: $0.04                |
+
+### Auto-Detection for Image Generation
+
+```typescript
+await generateText({
+  model: openai("gpt-4o"),
+  prompt: "Generate an image of a cat",
+  tools: { generate_image: myImageGenTool },
+  onFinish: tracker.onFinish("gpt-4o", undefined, {
+    imageGenerationTools: [],  // Use default tool names
+  }),
+});
+
+// Custom tool names
+onFinish: tracker.onFinish("gpt-4o", undefined, {
+  imageGenerationTools: ["my_dalle_tool"],
+})
+```
+
+**Default Image Generation Tool Names**: `generate_image`, `generateImage`, `image_generation`, `imageGeneration`, `create_image`, `createImage`, `dall_e`, `dalle`, `imagen`, `stable_diffusion`, `text_to_image`, `textToImage`
 
 ## API Reference
 
@@ -243,26 +354,28 @@ const cost = calculateCost({
 
 #### Options
 
-| Property            | Type                 | Required | Description                                                |
-| ------------------- | -------------------- | -------- | ---------------------------------------------------------- |
-| `model`             | `string`             | Yes      | Model identifier (e.g., `"gpt-4o"`, `"claude-sonnet-4-5"`) |
-| `usage`             | `LanguageModelUsage` | Yes      | Token usage from AI SDK                                    |
-| `customPricing`     | `ModelPricing`       | No       | Override default pricing                                   |
-| `webSearchRequests` | `number`             | No       | Number of web search requests                              |
+| Property             | Type                 | Required | Description                                                |
+| -------------------- | -------------------- | -------- | ---------------------------------------------------------- |
+| `model`              | `string`             | Yes      | Model identifier (e.g., `"gpt-4o"`, `"claude-sonnet-4-5"`) |
+| `usage`              | `LanguageModelUsage` | Yes      | Token usage from AI SDK                                    |
+| `customPricing`      | `ModelPricing`       | No       | Override default pricing                                   |
+| `webSearchRequests`  | `number`             | No       | Number of web search requests                              |
+| `googleMapsRequests` | `number`             | No       | Number of Google Maps API requests                         |
 
 #### Return Value: `CostBreakdown`
 
-| Property        | Type      | Description                                  |
-| --------------- | --------- | -------------------------------------------- |
-| `inputCost`     | `number`  | Cost for input tokens (excluding cache)      |
-| `outputCost`    | `number`  | Cost for output tokens (excluding reasoning) |
-| `cacheReadCost` | `number`  | Cost for cached input tokens                 |
-| `cacheWriteCost`| `number`  | Cost for writing to cache                    |
-| `reasoningCost` | `number`  | Cost for reasoning tokens                    |
-| `webSearchCost` | `number`  | Cost for web search requests                 |
-| `totalCost`     | `number`  | Sum of all costs                             |
-| `currency`      | `"USD"`   | Always USD                                   |
-| `isLongContext` | `boolean` | Whether long context pricing was applied     |
+| Property         | Type      | Description                                  |
+| ---------------- | --------- | -------------------------------------------- |
+| `inputCost`      | `number`  | Cost for input tokens (excluding cache)      |
+| `outputCost`     | `number`  | Cost for output tokens (excluding reasoning) |
+| `cacheReadCost`  | `number`  | Cost for cached input tokens                 |
+| `cacheWriteCost` | `number`  | Cost for writing to cache                    |
+| `reasoningCost`  | `number`  | Cost for reasoning tokens                    |
+| `webSearchCost`  | `number`  | Cost for web search requests                 |
+| `googleMapsCost` | `number`  | Cost for Google Maps API requests            |
+| `totalCost`      | `number`  | Sum of all costs                             |
+| `currency`       | `"USD"`   | Always USD                                   |
+| `isLongContext`  | `boolean` | Whether long context pricing was applied     |
 
 ### `createTracker(options?)`
 
@@ -408,7 +521,8 @@ const output = formatCostBreakdown(cost);
 // Cache Read:   $0.000060
 // Output:       $0.007500
 // Web Search:   $0.050000
-// Total:        $0.059960
+// Google Maps:  $0.007000
+// Total:        $0.066960
 ```
 
 ### `calculateStreamCost(streamResult, options)`
@@ -429,6 +543,57 @@ const cost = await calculateStreamCost(stream, {
   onCost: (cost, usage) => {
     console.log(`Stream completed: ${formatCost(cost.totalCost)}`);
   },
+});
+```
+
+### `detectRequestsFromResult(result, options?)`
+
+Detect web search and Google Maps tool calls from an AI SDK result.
+
+```typescript
+import { detectRequestsFromResult } from "ai-sdk-cost-calculator";
+
+const result = await generateText({
+  model: google("gemini-2.0-flash"),
+  prompt: "Find restaurants",
+  tools: { web_search: searchTool, places: placesTool },
+});
+
+const { webSearchRequests, googleMapsRequests } = detectRequestsFromResult(result);
+
+// With custom tool names (added to defaults)
+const detected = detectRequestsFromResult(result, {
+  webSearchTools: ["my_search", "custom_tavily"],
+  googleMapsTools: ["location_finder"],
+});
+```
+
+| Parameter              | Type                  | Required | Description                                |
+| ---------------------- | --------------------- | -------- | ------------------------------------------ |
+| `result`               | `ResultWithToolCalls` | Yes      | AI SDK result with toolCalls/steps         |
+| `options.webSearchTools`   | `string[]`        | No       | Additional tool names to count as search   |
+| `options.googleMapsTools`  | `string[]`        | No       | Additional tool names to count as maps     |
+
+### `withDetectedRequests(result, options?)`
+
+Convenience wrapper that returns detected requests for spreading into `calculateCost`.
+
+```typescript
+import { withDetectedRequests, calculateCost } from "ai-sdk-cost-calculator";
+
+const cost = calculateCost({
+  model: "gemini-2.0-flash",
+  usage: result.usage,
+  ...withDetectedRequests(result),
+});
+
+// With custom tool names
+const cost2 = calculateCost({
+  model: "gemini-2.0-flash",
+  usage: result.usage,
+  ...withDetectedRequests(result, {
+    webSearchTools: ["my_search"],
+  }),
 });
 ```
 
@@ -508,6 +673,7 @@ const cost = calculateCost({
     outputPer1MTokens: 8.0,
     cacheReadPer1MTokens: 1.0,
     webSearchPer1kRequests: 15,
+    googleMapsPer1kRequests: 10,
   },
 });
 ```
@@ -537,6 +703,10 @@ import type {
   CostAwareOptions,
   ResultWithCost,
   FinishResultWithCost,
+  // Auto-detection
+  DetectOptions,
+  DetectedRequests,
+  ResultWithToolCalls,
 } from "ai-sdk-cost-calculator";
 ```
 

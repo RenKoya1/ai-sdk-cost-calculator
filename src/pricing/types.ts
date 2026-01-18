@@ -16,6 +16,20 @@ export interface ModelPricing {
   // Web search pricing
   webSearchPer1kRequests?: number; // Cost per 1,000 web search requests
   webSearchTokensPerRequest?: number; // Fixed tokens charged per search (e.g., OpenAI charges 8k tokens)
+
+  // Google Maps pricing
+  googleMapsPer1kRequests?: number; // Cost per 1,000 Google Maps API requests
+
+  // Image generation pricing (per image)
+  imageGenerationPerImage?: number; // Default cost per image
+  imageGenerationPricing?: ImageGenerationPricing; // Detailed pricing by size/quality
+}
+
+/**
+ * Image generation pricing by size and quality
+ */
+export interface ImageGenerationPricing {
+  [sizeOrQuality: string]: number; // e.g., "1024x1024": 0.04, "hd-1024x1024": 0.08
 }
 
 export interface ProviderPricing {

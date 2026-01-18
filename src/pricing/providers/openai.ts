@@ -139,4 +139,41 @@ export const openaiPricing: ProviderPricing = {
     cacheReadPer1MTokens: 0.275,
     reasoningPer1MTokens: 4.4,
   },
+  // DALL-E 3
+  "dall-e-3": {
+    inputPer1MTokens: 0,
+    outputPer1MTokens: 0,
+    imageGenerationPerImage: 0.04, // Default: standard 1024x1024
+    imageGenerationPricing: {
+      "1024x1024": 0.04,
+      "1024x1792": 0.08,
+      "1792x1024": 0.08,
+      "hd-1024x1024": 0.08,
+      "hd-1024x1792": 0.12,
+      "hd-1792x1024": 0.12,
+    },
+  },
+  // DALL-E 2
+  "dall-e-2": {
+    inputPer1MTokens: 0,
+    outputPer1MTokens: 0,
+    imageGenerationPerImage: 0.02, // Default: 1024x1024
+    imageGenerationPricing: {
+      "1024x1024": 0.02,
+      "512x512": 0.018,
+      "256x256": 0.016,
+    },
+  },
+  // GPT Image 1 (gpt-image-1)
+  "gpt-image-1": {
+    inputPer1MTokens: 5,  // Text input tokens
+    outputPer1MTokens: 0,
+    imageGenerationPerImage: 0.04, // Default: standard 1024x1024
+    imageGenerationPricing: {
+      "1024x1024": 0.04,
+      "1536x1024": 0.08,
+      "1024x1536": 0.08,
+      "auto": 0.04,
+    },
+  },
 };
