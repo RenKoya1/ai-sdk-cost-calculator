@@ -54,6 +54,7 @@ function getEffectivePricing(
         pricing.cacheWritePer1MTokens ??
         0,
       reasoningPer1MTokens:
+        pricing.longContextReasoningPer1MTokens ??
         pricing.reasoningPer1MTokens ??
         pricing.longContextOutputPer1MTokens ??
         pricing.outputPer1MTokens,

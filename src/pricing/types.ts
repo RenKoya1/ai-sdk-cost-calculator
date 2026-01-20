@@ -12,6 +12,7 @@ export interface ModelPricing {
   longContextOutputPer1MTokens?: number;
   longContextCacheReadPer1MTokens?: number;
   longContextCacheWritePer1MTokens?: number;
+  longContextReasoningPer1MTokens?: number
 
   // Web search pricing
   webSearchPer1kRequests?: number; // Cost per 1,000 web search requests

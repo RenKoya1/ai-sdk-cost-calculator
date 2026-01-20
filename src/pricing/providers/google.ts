@@ -5,9 +5,11 @@ import type { ProviderPricing } from "../types";
 // Google Maps (Dynamic Maps): $7/1k requests
 export const googlePricing: ProviderPricing = {
   // Gemini 3 Pro Preview - with long context pricing (grounding: $14/1k, maps: $7/1k)
+  // Output price includes thinking tokens
   "gemini-3-pro-preview": {
     inputPer1MTokens: 2,
     outputPer1MTokens: 12,
+    reasoningPer1MTokens: 12,
     longContextThreshold: 200000,
     longContextInputPer1MTokens: 4,
     longContextOutputPer1MTokens: 18,
@@ -17,6 +19,7 @@ export const googlePricing: ProviderPricing = {
   "gemini-3-pro": {
     inputPer1MTokens: 2,
     outputPer1MTokens: 12,
+    reasoningPer1MTokens: 12,
     longContextThreshold: 200000,
     longContextInputPer1MTokens: 4,
     longContextOutputPer1MTokens: 18,
@@ -24,19 +27,23 @@ export const googlePricing: ProviderPricing = {
     googleMapsPer1kRequests: 7,
   },
   // Gemini 3 Flash Preview (grounding: $14/1k, maps: $7/1k)
+  // Output price includes thinking tokens
   "gemini-3-flash-preview": {
     inputPer1MTokens: 0.5,
     outputPer1MTokens: 3,
+    reasoningPer1MTokens: 3,
     webSearchPer1kRequests: 14,
     googleMapsPer1kRequests: 7,
   },
   "gemini-3-flash": {
     inputPer1MTokens: 0.5,
     outputPer1MTokens: 3,
+    reasoningPer1MTokens: 3,
     webSearchPer1kRequests: 14,
     googleMapsPer1kRequests: 7,
   },
   // Gemini 2.5 Pro - with long context pricing (grounding: $35/1k, maps: $7/1k)
+  // Output price includes thinking tokens
   "gemini-2.5-pro": {
     inputPer1MTokens: 1.25,
     outputPer1MTokens: 10,
@@ -45,6 +52,7 @@ export const googlePricing: ProviderPricing = {
     longContextThreshold: 200000,
     longContextInputPer1MTokens: 2.5,
     longContextOutputPer1MTokens: 15,
+    longContextReasoningPer1MTokens: 15,
     webSearchPer1kRequests: 35,
     googleMapsPer1kRequests: 7,
   },
@@ -56,10 +64,12 @@ export const googlePricing: ProviderPricing = {
     longContextThreshold: 200000,
     longContextInputPer1MTokens: 2.5,
     longContextOutputPer1MTokens: 15,
+    longContextReasoningPer1MTokens: 15,
     webSearchPer1kRequests: 35,
     googleMapsPer1kRequests: 7,
   },
   // Gemini 2.5 Flash (grounding: $14/1k, maps: $7/1k)
+  // Output price includes thinking tokens
   "gemini-2.5-flash": {
     inputPer1MTokens: 0.3,
     outputPer1MTokens: 2.5,
@@ -77,35 +87,45 @@ export const googlePricing: ProviderPricing = {
     googleMapsPer1kRequests: 7,
   },
   // Gemini 2.5 Flash-Lite
+  // Output price includes thinking tokens
   "gemini-2.5-flash-lite": {
     inputPer1MTokens: 0.1,
     outputPer1MTokens: 0.4,
+    reasoningPer1MTokens: 0.4,
   },
   // Gemini 2.0 Flash (grounding: $14/1k, maps: $7/1k)
+  // Output price includes thinking tokens
   "gemini-2.0-flash": {
     inputPer1MTokens: 0.1,
     outputPer1MTokens: 0.4,
     cacheReadPer1MTokens: 0.01,
+    reasoningPer1MTokens: 0.4,
     webSearchPer1kRequests: 14,
     googleMapsPer1kRequests: 7,
   },
   // Gemini 2.0 Flash-Lite
+  // Output price includes thinking tokens
   "gemini-2.0-flash-lite": {
     inputPer1MTokens: 0.075,
     outputPer1MTokens: 0.3,
+    reasoningPer1MTokens: 0.3,
   },
   "gemini-2.0-flash-exp": {
     inputPer1MTokens: 0,
     outputPer1MTokens: 0,
+    reasoningPer1MTokens: 0,
   },
   // Gemini 1.5 Pro - with long context pricing (grounding: $35/1k, maps: $7/1k)
+  // Output price includes thinking tokens
   "gemini-1.5-pro": {
     inputPer1MTokens: 1.25,
     outputPer1MTokens: 5,
     cacheReadPer1MTokens: 0.125,
+    reasoningPer1MTokens: 5,
     longContextThreshold: 128000,
     longContextInputPer1MTokens: 2.5,
     longContextOutputPer1MTokens: 10,
+    longContextReasoningPer1MTokens: 10,
     webSearchPer1kRequests: 35,
     googleMapsPer1kRequests: 7,
   },
@@ -113,20 +133,25 @@ export const googlePricing: ProviderPricing = {
     inputPer1MTokens: 1.25,
     outputPer1MTokens: 5,
     cacheReadPer1MTokens: 0.125,
+    reasoningPer1MTokens: 5,
     longContextThreshold: 128000,
     longContextInputPer1MTokens: 2.5,
     longContextOutputPer1MTokens: 10,
+    longContextReasoningPer1MTokens: 10,
     webSearchPer1kRequests: 35,
     googleMapsPer1kRequests: 7,
   },
   // Gemini 1.5 Flash - with long context pricing (grounding: $14/1k, maps: $7/1k)
+  // Output price includes thinking tokens
   "gemini-1.5-flash": {
     inputPer1MTokens: 0.075,
     outputPer1MTokens: 0.3,
     cacheReadPer1MTokens: 0.0075,
+    reasoningPer1MTokens: 0.3,
     longContextThreshold: 128000,
     longContextInputPer1MTokens: 0.15,
     longContextOutputPer1MTokens: 0.6,
+    longContextReasoningPer1MTokens: 0.6,
     webSearchPer1kRequests: 14,
     googleMapsPer1kRequests: 7,
   },
@@ -134,9 +159,11 @@ export const googlePricing: ProviderPricing = {
     inputPer1MTokens: 0.075,
     outputPer1MTokens: 0.3,
     cacheReadPer1MTokens: 0.0075,
+    reasoningPer1MTokens: 0.3,
     longContextThreshold: 128000,
     longContextInputPer1MTokens: 0.15,
     longContextOutputPer1MTokens: 0.6,
+    longContextReasoningPer1MTokens: 0.6,
     webSearchPer1kRequests: 14,
     googleMapsPer1kRequests: 7,
   },
@@ -144,9 +171,11 @@ export const googlePricing: ProviderPricing = {
     inputPer1MTokens: 0.0375,
     outputPer1MTokens: 0.15,
     cacheReadPer1MTokens: 0.00375,
+    reasoningPer1MTokens: 0.15,
     longContextThreshold: 128000,
     longContextInputPer1MTokens: 0.075,
     longContextOutputPer1MTokens: 0.3,
+    longContextReasoningPer1MTokens: 0.3,
     webSearchPer1kRequests: 14,
     googleMapsPer1kRequests: 7,
   },

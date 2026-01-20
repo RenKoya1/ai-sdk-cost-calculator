@@ -1,6 +1,6 @@
 {
   "name": "ai-sdk-cost-calculator",
-  "version": "0.1.5",
+  "version": "0.1.7",
   "description": "Cost calculator for Vercel AI SDK token usage. Supports OpenAI, Anthropic, Google, xAI (Grok), and DeepSeek with long context pricing, prompt caching, and reasoning tokens.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -20,7 +20,8 @@
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "test": "vitest",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "release": "npm run build && npm publish --access=public"
   },
   "keywords": [
     "ai",
