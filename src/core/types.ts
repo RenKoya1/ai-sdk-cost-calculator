@@ -6,6 +6,10 @@ export interface CostBreakdown {
   reasoningCost: number;
   webSearchCost: number;
   googleMapsCost: number;
+  xSearchCost: number;
+  codeExecutionCost: number;
+  documentSearchCost: number;
+  collectionsSearchCost: number;
   imageGenerationCost: number;
   totalCost: number;
   currency: "USD";

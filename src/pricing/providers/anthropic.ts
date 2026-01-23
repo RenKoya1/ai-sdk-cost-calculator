@@ -78,8 +78,39 @@ export const anthropicPricing: ProviderPricing = {
     cacheReadPer1MTokens: 1.5,
     cacheWritePer1MTokens: 18.75,
   },
+  // Claude 3.7 Sonnet (Jan-Feb 2026)
+  "claude-3-7-sonnet-20260219": {
+    inputPer1MTokens: 3,
+    outputPer1MTokens: 15,
+    cacheReadPer1MTokens: 0.3,
+    cacheWritePer1MTokens: 3.75,
+  },
+  "claude-3-7-sonnet-20260117": {
+    inputPer1MTokens: 3,
+    outputPer1MTokens: 15,
+    cacheReadPer1MTokens: 0.3,
+    cacheWritePer1MTokens: 3.75,
+  },
+  "claude-3-7-sonnet-latest": {
+    inputPer1MTokens: 3,
+    outputPer1MTokens: 15,
+    cacheReadPer1MTokens: 0.3,
+    cacheWritePer1MTokens: 3.75,
+  },
+  "claude-3-7-sonnet": {
+    inputPer1MTokens: 3,
+    outputPer1MTokens: 15,
+    cacheReadPer1MTokens: 0.3,
+    cacheWritePer1MTokens: 3.75,
+  },
   // Claude 3.5 Sonnet
   "claude-3-5-sonnet-20241022": {
+    inputPer1MTokens: 3,
+    outputPer1MTokens: 15,
+    cacheReadPer1MTokens: 0.3,
+    cacheWritePer1MTokens: 3.75,
+  },
+  "claude-3-5-sonnet-20240620": {
     inputPer1MTokens: 3,
     outputPer1MTokens: 15,
     cacheReadPer1MTokens: 0.3,

@@ -45,10 +45,58 @@ export function getModelPricing(
   return providerPricing[modelId];
 }
 
+/**
+ * Normalize model ID by removing common suffixes and trying fallbacks
+ * Examples:
+ * - claude-3-7-sonnet-latest -> claude-3-7-sonnet
+ * - gemini-2.5-flash-preview -> gemini-2.5-flash
+ * - gpt-4o-2024-11-20 -> gpt-4o
+ */
+function normalizeModelId(modelId: string): string[] {
+  const candidates: string[] = [modelId]; // Start with exact match
+
+  // Remove -latest suffix
+  if (modelId.endsWith('-latest')) {
+    candidates.push(modelId.replace(/-latest$/, ''));
+  }
+
+  // Remove -preview suffix
+  if (modelId.endsWith('-preview')) {
+    candidates.push(modelId.replace(/-preview$/, ''));
+  }
+
+  // Remove date-like version suffix (e.g., -20241022, -2024-11-20)
+  const dateVersionPattern = /-\d{4}-?\d{2}-?\d{2}$/;
+  if (dateVersionPattern.test(modelId)) {
+    candidates.push(modelId.replace(dateVersionPattern, ''));
+  }
+
+  // Remove version numbers at the end (e.g., -001, -002, -v1, -1)
+  const versionPattern = /-(v?\d+|0\d{2,})$/;
+  if (versionPattern.test(modelId)) {
+    candidates.push(modelId.replace(versionPattern, ''));
+  }
+
+  return candidates;
+}
+
 export function getModelPricingByModelId(
   modelId: string
 ): ModelPricing | undefined {
-  return flatPricing[modelId];
+  // Try exact match first
+  if (flatPricing[modelId]) {
+    return flatPricing[modelId];
+  }
+
+  // Try normalized versions
+  const candidates = normalizeModelId(modelId);
+  for (const candidate of candidates) {
+    if (flatPricing[candidate]) {
+      return flatPricing[candidate];
+    }
+  }
+
+  return undefined;
 }
 
 export function getAllSupportedModels(): {

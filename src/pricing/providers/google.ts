@@ -26,6 +26,19 @@ export const googlePricing: ProviderPricing = {
     webSearchPer1kRequests: 14,
     googleMapsPer1kRequests: 7,
   },
+  // Gemini 3 Pro Image Preview - Native image generation
+  "gemini-3-pro-image-preview": {
+    inputPer1MTokens: 2, // Text input follows 3 Pro pricing
+    outputPer1MTokens: 120, // Estimated based on 2.5 Flash Image pricing
+    reasoningPer1MTokens: 12,
+    imageGenerationPerImage: 0.05, // Estimated for Pro tier
+    imageGenerationPricing: {
+      "1024x1024": 0.134,
+      "2048x2048": 0.24,
+    },
+    webSearchPer1kRequests: 14,
+    googleMapsPer1kRequests: 7,
+  },
   // Gemini 3 Flash Preview (grounding: $14/1k, maps: $7/1k)
   // Output price includes thinking tokens
   "gemini-3-flash-preview": {
@@ -226,4 +239,36 @@ export const googlePricing: ProviderPricing = {
       "1536x1536": 0.04,
     },
   },
+  // Gemini 2.5 Flash Image - Native image generation
+  "gemini-2.5-flash-image": {
+    inputPer1MTokens: 0.3, // Text input follows 2.5 Flash pricing
+    outputPer1MTokens: 30, // $30/1M tokens for image output
+    imageGenerationPerImage: 0.039, // Standard 1K image (1290 tokens)
+    imageGenerationPricing: {
+      "1024x1024": 0.039, // 1K standard
+      "2048x2048": 0.134, // 2K large (1120 tokens)
+    },
+  },
+  // Gemini 2.5 Flash TTS - Text-to-Speech
+  "gemini-2.5-flash-tts": {
+    inputPer1MTokens: 0.5, // Text input
+    outputPer1MTokens: 10, // Audio output
+  },
+  "gemini-2.5-flash-tts-batch": {
+    inputPer1MTokens: 0.25, // Batch pricing
+    outputPer1MTokens: 5, // Batch pricing
+  },
+  // Gemini 2.5 Pro TTS - Text-to-Speech (higher quality)
+  "gemini-2.5-pro-tts": {
+    inputPer1MTokens: 1,
+    outputPer1MTokens: 20,
+  },
+  "gemini-2.5-pro-tts-batch": {
+    inputPer1MTokens: 0.5,
+    outputPer1MTokens: 10,
+  },
+  // TODO: Add video and music generation models with new pricing types
+  // Veo 3/3.1 - Video generation: $0.40-0.75 per second (requires videoGenerationPerSecond)
+  // Lyria 2 - Music generation: $0.06 per 30 seconds (requires musicGenerationPer30Seconds)
+  // Lyria RealTime - Music streaming: Free (experimental)
 };

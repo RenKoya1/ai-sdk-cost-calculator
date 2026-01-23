@@ -16,6 +16,14 @@ export interface CalculateCostOptions {
   webSearchRequests?: number;
   /** Number of Google Maps API requests made */
   googleMapsRequests?: number;
+  /** Number of xAI X Search requests made */
+  xSearchRequests?: number;
+  /** Number of xAI Code Execution requests made */
+  codeExecutionRequests?: number;
+  /** Number of xAI Document Search requests made */
+  documentSearchRequests?: number;
+  /** Number of xAI Collections Search requests made */
+  collectionsSearchRequests?: number;
   /** Number of images generated */
   imageGenerations?: number;
   /** Image size/quality for pricing lookup (e.g., "1024x1024", "hd-1024x1024") */
@@ -85,6 +93,10 @@ export function calculateCost(options: CalculateCostOptions): CostBreakdown {
     customPricing,
     webSearchRequests = 0,
     googleMapsRequests = 0,
+    xSearchRequests = 0,
+    codeExecutionRequests = 0,
+    documentSearchRequests = 0,
+    collectionsSearchRequests = 0,
     imageGenerations = 0,
     imageSize,
   } = options;
@@ -152,6 +164,30 @@ export function calculateCost(options: CalculateCostOptions): CostBreakdown {
     googleMapsCost = (googleMapsRequests / 1000) * pricing.googleMapsPer1kRequests;
   }
 
+  // Calculate xAI X Search cost
+  let xSearchCost = 0;
+  if (xSearchRequests > 0 && pricing.xSearchPer1kRequests) {
+    xSearchCost = (xSearchRequests / 1000) * pricing.xSearchPer1kRequests;
+  }
+
+  // Calculate xAI Code Execution cost
+  let codeExecutionCost = 0;
+  if (codeExecutionRequests > 0 && pricing.codeExecutionPer1kRequests) {
+    codeExecutionCost = (codeExecutionRequests / 1000) * pricing.codeExecutionPer1kRequests;
+  }
+
+  // Calculate xAI Document Search cost
+  let documentSearchCost = 0;
+  if (documentSearchRequests > 0 && pricing.documentSearchPer1kRequests) {
+    documentSearchCost = (documentSearchRequests / 1000) * pricing.documentSearchPer1kRequests;
+  }
+
+  // Calculate xAI Collections Search cost
+  let collectionsSearchCost = 0;
+  if (collectionsSearchRequests > 0 && pricing.collectionsSearchPer1kRequests) {
+    collectionsSearchCost = (collectionsSearchRequests / 1000) * pricing.collectionsSearchPer1kRequests;
+  }
+
   // Calculate image generation cost
   let imageGenerationCost = 0;
   if (imageGenerations > 0) {
@@ -171,6 +207,10 @@ export function calculateCost(options: CalculateCostOptions): CostBreakdown {
     reasoningCost +
     webSearchCost +
     googleMapsCost +
+    xSearchCost +
+    codeExecutionCost +
+    documentSearchCost +
+    collectionsSearchCost +
     imageGenerationCost;
 
   return {
@@ -181,6 +221,10 @@ export function calculateCost(options: CalculateCostOptions): CostBreakdown {
     reasoningCost: roundToMicroDollars(reasoningCost),
     webSearchCost: roundToMicroDollars(webSearchCost),
     googleMapsCost: roundToMicroDollars(googleMapsCost),
+    xSearchCost: roundToMicroDollars(xSearchCost),
+    codeExecutionCost: roundToMicroDollars(codeExecutionCost),
+    documentSearchCost: roundToMicroDollars(documentSearchCost),
+    collectionsSearchCost: roundToMicroDollars(collectionsSearchCost),
     imageGenerationCost: roundToMicroDollars(imageGenerationCost),
     totalCost: roundToMicroDollars(totalCost),
     currency: "USD",
@@ -221,6 +265,18 @@ export function formatCostBreakdown(
   }
   if (result.googleMapsCost > 0) {
     lines.push(`Google Maps:  ${formatCost(result.googleMapsCost, decimals)}`);
+  }
+  if (result.xSearchCost > 0) {
+    lines.push(`X Search:     ${formatCost(result.xSearchCost, decimals)}`);
+  }
+  if (result.codeExecutionCost > 0) {
+    lines.push(`Code Exec:    ${formatCost(result.codeExecutionCost, decimals)}`);
+  }
+  if (result.documentSearchCost > 0) {
+    lines.push(`Doc Search:   ${formatCost(result.documentSearchCost, decimals)}`);
+  }
+  if (result.collectionsSearchCost > 0) {
+    lines.push(`Collections:  ${formatCost(result.collectionsSearchCost, decimals)}`);
   }
   if (result.imageGenerationCost > 0) {
     lines.push(`Image Gen:    ${formatCost(result.imageGenerationCost, decimals)}`);

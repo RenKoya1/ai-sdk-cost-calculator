@@ -21,6 +21,12 @@ export interface ModelPricing {
   // Google Maps pricing
   googleMapsPer1kRequests?: number; // Cost per 1,000 Google Maps API requests
 
+  // xAI tool pricing (per 1,000 calls)
+  xSearchPer1kRequests?: number; // X (Twitter) search
+  codeExecutionPer1kRequests?: number; // Python code execution
+  documentSearchPer1kRequests?: number; // Document search
+  collectionsSearchPer1kRequests?: number; // xAI Collections search
+
   // Image generation pricing (per image)
   imageGenerationPerImage?: number; // Default cost per image
   imageGenerationPricing?: ImageGenerationPricing; // Detailed pricing by size/quality

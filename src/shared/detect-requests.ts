@@ -42,9 +42,54 @@ export const DEFAULT_IMAGE_GENERATION_TOOLS = [
   "textToImage",
 ];
 
+/** Default xAI X Search tool names */
+export const DEFAULT_X_SEARCH_TOOLS = [
+  "x_search",
+  "xSearch",
+  "twitter_search",
+  "twitterSearch",
+  "x_posts",
+  "xPosts",
+];
+
+/** Default xAI Code Execution tool names */
+export const DEFAULT_CODE_EXECUTION_TOOLS = [
+  "code_execution",
+  "codeExecution",
+  "execute_code",
+  "executeCode",
+  "python",
+  "run_code",
+  "runCode",
+];
+
+/** Default xAI Document Search tool names */
+export const DEFAULT_DOCUMENT_SEARCH_TOOLS = [
+  "document_search",
+  "documentSearch",
+  "search_documents",
+  "searchDocuments",
+  "file_search",
+  "fileSearch",
+];
+
+/** Default xAI Collections Search tool names */
+export const DEFAULT_COLLECTIONS_SEARCH_TOOLS = [
+  "collections_search",
+  "collectionsSearch",
+  "search_collections",
+  "searchCollections",
+  "knowledge_base",
+  "knowledgeBase",
+];
+
 export interface DetectedRequests {
   webSearchRequests: number;
   googleMapsRequests: number;
+  xSearchRequests: number;
+  codeExecutionRequests: number;
+  documentSearchRequests: number;
+  collectionsSearchRequests: number;
   imageGenerations: number;
 }
 
@@ -53,6 +98,14 @@ export interface DetectOptions {
   webSearchTools?: string[];
   /** Additional tool names to count as Google Maps (added to defaults) */
   googleMapsTools?: string[];
+  /** Additional tool names to count as X Search (added to defaults) */
+  xSearchTools?: string[];
+  /** Additional tool names to count as Code Execution (added to defaults) */
+  codeExecutionTools?: string[];
+  /** Additional tool names to count as Document Search (added to defaults) */
+  documentSearchTools?: string[];
+  /** Additional tool names to count as Collections Search (added to defaults) */
+  collectionsSearchTools?: string[];
   /** Additional tool names to count as image generation (added to defaults) */
   imageGenerationTools?: string[];
 }
@@ -134,10 +187,18 @@ export function detectRequestsFromResult(
 ): DetectedRequests {
   let webSearchRequests = 0;
   let googleMapsRequests = 0;
+  let xSearchRequests = 0;
+  let codeExecutionRequests = 0;
+  let documentSearchRequests = 0;
+  let collectionsSearchRequests = 0;
   let imageGenerations = 0;
 
   const isWebSearchTool = createToolMatcher(DEFAULT_WEB_SEARCH_TOOLS, options?.webSearchTools);
   const isGoogleMapsTool = createToolMatcher(DEFAULT_GOOGLE_MAPS_TOOLS, options?.googleMapsTools);
+  const isXSearchTool = createToolMatcher(DEFAULT_X_SEARCH_TOOLS, options?.xSearchTools);
+  const isCodeExecutionTool = createToolMatcher(DEFAULT_CODE_EXECUTION_TOOLS, options?.codeExecutionTools);
+  const isDocumentSearchTool = createToolMatcher(DEFAULT_DOCUMENT_SEARCH_TOOLS, options?.documentSearchTools);
+  const isCollectionsSearchTool = createToolMatcher(DEFAULT_COLLECTIONS_SEARCH_TOOLS, options?.collectionsSearchTools);
   const isImageGenerationTool = createToolMatcher(DEFAULT_IMAGE_GENERATION_TOOLS, options?.imageGenerationTools);
 
   // Check tool calls at the top level
@@ -149,6 +210,14 @@ export function detectRequestsFromResult(
           webSearchRequests++;
         } else if (isGoogleMapsTool(name)) {
           googleMapsRequests++;
+        } else if (isXSearchTool(name)) {
+          xSearchRequests++;
+        } else if (isCodeExecutionTool(name)) {
+          codeExecutionRequests++;
+        } else if (isDocumentSearchTool(name)) {
+          documentSearchRequests++;
+        } else if (isCollectionsSearchTool(name)) {
+          collectionsSearchRequests++;
         } else if (isImageGenerationTool(name)) {
           imageGenerations++;
         }
@@ -167,6 +236,14 @@ export function detectRequestsFromResult(
               webSearchRequests++;
             } else if (isGoogleMapsTool(name)) {
               googleMapsRequests++;
+            } else if (isXSearchTool(name)) {
+              xSearchRequests++;
+            } else if (isCodeExecutionTool(name)) {
+              codeExecutionRequests++;
+            } else if (isDocumentSearchTool(name)) {
+              documentSearchRequests++;
+            } else if (isCollectionsSearchTool(name)) {
+              collectionsSearchRequests++;
             } else if (isImageGenerationTool(name)) {
               imageGenerations++;
             }
@@ -190,7 +267,15 @@ export function detectRequestsFromResult(
     }
   }
 
-  return { webSearchRequests, googleMapsRequests, imageGenerations };
+  return {
+    webSearchRequests,
+    googleMapsRequests,
+    xSearchRequests,
+    codeExecutionRequests,
+    documentSearchRequests,
+    collectionsSearchRequests,
+    imageGenerations,
+  };
 }
 
 /**
@@ -226,6 +311,10 @@ export function withDetectedRequests(
   options?: DetectOptions & {
     webSearchRequests?: number;
     googleMapsRequests?: number;
+    xSearchRequests?: number;
+    codeExecutionRequests?: number;
+    documentSearchRequests?: number;
+    collectionsSearchRequests?: number;
     imageGenerations?: number;
   },
 ): DetectedRequests {
@@ -233,6 +322,10 @@ export function withDetectedRequests(
   return {
     webSearchRequests: options?.webSearchRequests ?? detected.webSearchRequests,
     googleMapsRequests: options?.googleMapsRequests ?? detected.googleMapsRequests,
+    xSearchRequests: options?.xSearchRequests ?? detected.xSearchRequests,
+    codeExecutionRequests: options?.codeExecutionRequests ?? detected.codeExecutionRequests,
+    documentSearchRequests: options?.documentSearchRequests ?? detected.documentSearchRequests,
+    collectionsSearchRequests: options?.collectionsSearchRequests ?? detected.collectionsSearchRequests,
     imageGenerations: options?.imageGenerations ?? detected.imageGenerations,
   };
 }
