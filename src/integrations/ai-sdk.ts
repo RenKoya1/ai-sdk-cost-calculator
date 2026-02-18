@@ -2,7 +2,7 @@ import type { LanguageModelUsage, LanguageModel } from "ai";
 import { calculateCost } from "../core/calculator";
 import type { CostBreakdown } from "../core/types";
 import type { ModelPricing } from "../pricing";
-import { addCostBreakdowns, emptyCostBreakdown } from "../shared/cost";
+import { addCostBreakdowns, emptyCostBreakdown, multiplyCostBreakdown } from "../shared/cost";
 import {
   detectRequestsFromResult,
   type DetectOptions,
@@ -46,6 +46,8 @@ export interface CostAwareOptions extends DetectOptions {
   imageGenerations?: number;
   /** Image size/quality for pricing lookup */
   imageSize?: string;
+  /** Multiply all cost values by this factor (e.g., 1.5 for 150% markup) */
+  costMultiplier?: number;
   /** Callback when cost is calculated */
   onCost?: (cost: CostBreakdown, usage: LanguageModelUsage) => void;
 }
@@ -89,7 +91,7 @@ export function withCost<T extends { usage: LanguageModelUsage }>(
     googleMapsRequests = googleMapsRequests ?? detected.googleMapsRequests;
     imageGenerations = imageGenerations ?? detected.imageGenerations;
 
-    const cost = calculateCost({
+    let cost = calculateCost({
       model: modelId,
       usage: result.usage,
       customPricing: options?.customPricing,
@@ -98,6 +100,10 @@ export function withCost<T extends { usage: LanguageModelUsage }>(
       imageGenerations,
       imageSize: options?.imageSize,
     });
+
+    if (options?.costMultiplier != null) {
+      cost = multiplyCostBreakdown(cost, options.costMultiplier);
+    }
 
     if (options?.onCost) {
       options.onCost(cost, result.usage);
@@ -241,7 +247,7 @@ export function createCostAwareAI(
         googleMapsRequests = googleMapsRequests ?? detected.googleMapsRequests;
         imageGenerations = imageGenerations ?? detected.imageGenerations;
 
-        const cost = calculateCost({
+        let cost = calculateCost({
           model: modelId,
           usage: result.usage,
           customPricing: customPricing[modelId] ?? opts?.customPricing,
@@ -250,6 +256,10 @@ export function createCostAwareAI(
           imageGenerations,
           imageSize: opts?.imageSize,
         });
+
+        if (opts?.costMultiplier != null) {
+          cost = multiplyCostBreakdown(cost, opts.costMultiplier);
+        }
 
         track(modelId, cost);
 
@@ -270,7 +280,7 @@ export function createCostAwareAI(
     ): CostBreakdown {
       const modelId = getModelId(model);
 
-      const cost = calculateCost({
+      let cost = calculateCost({
         model: modelId,
         usage,
         customPricing: customPricing[modelId] ?? opts?.customPricing,
@@ -279,6 +289,10 @@ export function createCostAwareAI(
         imageGenerations: opts?.imageGenerations,
         imageSize: opts?.imageSize,
       });
+
+      if (opts?.costMultiplier != null) {
+        cost = multiplyCostBreakdown(cost, opts.costMultiplier);
+      }
 
       track(modelId, cost);
 
@@ -339,7 +353,7 @@ export function getCost(
   usage: LanguageModelUsage,
   options?: CostAwareOptions,
 ): CostBreakdown {
-  return calculateCost({
+  let cost = calculateCost({
     model: getModelId(model),
     usage,
     customPricing: options?.customPricing,
@@ -348,4 +362,10 @@ export function getCost(
     imageGenerations: options?.imageGenerations,
     imageSize: options?.imageSize,
   });
+
+  if (options?.costMultiplier != null) {
+    cost = multiplyCostBreakdown(cost, options.costMultiplier);
+  }
+
+  return cost;
 }

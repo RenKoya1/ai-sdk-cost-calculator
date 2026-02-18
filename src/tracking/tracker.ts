@@ -2,7 +2,7 @@ import type { LanguageModelUsage, LanguageModel } from "ai";
 import { calculateCost } from "../core/calculator";
 import type { CostBreakdown } from "../core/types";
 import type { ModelPricing } from "../pricing";
-import { addCostBreakdowns, roundCostBreakdown } from "../shared/cost";
+import { addCostBreakdowns, roundCostBreakdown, multiplyCostBreakdown } from "../shared/cost";
 import {
   detectRequestsFromResult,
   type DetectOptions,
@@ -28,6 +28,8 @@ export interface AddUsageOptions extends DetectOptions {
   imageGenerations?: number;
   /** Image size/quality for pricing lookup */
   imageSize?: string;
+  /** Multiply all cost values by this factor (e.g., 1.5 for 150% markup) */
+  costMultiplier?: number;
 }
 
 /**
@@ -197,7 +199,11 @@ export function createMultiModelTracker(
       const data = getOrCreateModelData(modelId);
       addUsageToData(data, usage, opts);
 
-      const cost = calculateModelCost(modelId, data);
+      let cost = calculateModelCost(modelId, data);
+
+      if (opts?.costMultiplier != null) {
+        cost = multiplyCostBreakdown(cost, opts.costMultiplier);
+      }
 
       if (onCost) {
         onCost(modelId, cost);

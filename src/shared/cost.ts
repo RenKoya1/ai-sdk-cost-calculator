@@ -46,6 +46,29 @@ export function emptyCostBreakdown(): CostBreakdown {
   };
 }
 
+export function multiplyCostBreakdown(
+  cost: CostBreakdown,
+  multiplier: number,
+): CostBreakdown {
+  return {
+    inputCost: roundToMicroDollars(cost.inputCost * multiplier),
+    outputCost: roundToMicroDollars(cost.outputCost * multiplier),
+    cacheReadCost: roundToMicroDollars(cost.cacheReadCost * multiplier),
+    cacheWriteCost: roundToMicroDollars(cost.cacheWriteCost * multiplier),
+    reasoningCost: roundToMicroDollars(cost.reasoningCost * multiplier),
+    webSearchCost: roundToMicroDollars(cost.webSearchCost * multiplier),
+    googleMapsCost: roundToMicroDollars(cost.googleMapsCost * multiplier),
+    xSearchCost: roundToMicroDollars(cost.xSearchCost * multiplier),
+    codeExecutionCost: roundToMicroDollars(cost.codeExecutionCost * multiplier),
+    documentSearchCost: roundToMicroDollars(cost.documentSearchCost * multiplier),
+    collectionsSearchCost: roundToMicroDollars(cost.collectionsSearchCost * multiplier),
+    imageGenerationCost: roundToMicroDollars(cost.imageGenerationCost * multiplier),
+    totalCost: roundToMicroDollars(cost.totalCost * multiplier),
+    currency: "USD",
+    isLongContext: cost.isLongContext,
+  };
+}
+
 export function addCostBreakdowns(
   a: CostBreakdown,
   b: CostBreakdown,
