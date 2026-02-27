@@ -4,6 +4,30 @@ import type { ProviderPricing } from "../types";
 // Grounding with Google Search: $14-35/1k requests depending on model
 // Google Maps (Dynamic Maps): $7/1k requests
 export const googlePricing: ProviderPricing = {
+  // Gemini 3.1 Pro Preview - with long context pricing (grounding: $14/1k, maps: N/A)
+  // Output price includes thinking tokens
+  "gemini-3.1-pro-preview": {
+    inputPer1MTokens: 2,
+    outputPer1MTokens: 12,
+    cacheReadPer1MTokens: 0.2,
+    reasoningPer1MTokens: 12,
+    longContextThreshold: 200000,
+    longContextInputPer1MTokens: 4,
+    longContextOutputPer1MTokens: 18,
+    longContextCacheReadPer1MTokens: 0.4,
+    webSearchPer1kRequests: 14,
+  },
+  "gemini-3.1-pro-preview-customtools": {
+    inputPer1MTokens: 2,
+    outputPer1MTokens: 12,
+    cacheReadPer1MTokens: 0.2,
+    reasoningPer1MTokens: 12,
+    longContextThreshold: 200000,
+    longContextInputPer1MTokens: 4,
+    longContextOutputPer1MTokens: 18,
+    longContextCacheReadPer1MTokens: 0.4,
+    webSearchPer1kRequests: 14,
+  },
   // Gemini 3 Pro Preview - with long context pricing (grounding: $14/1k, maps: $7/1k)
   // Output price includes thinking tokens
   "gemini-3-pro-preview": {
