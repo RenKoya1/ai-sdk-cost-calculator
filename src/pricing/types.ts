@@ -27,16 +27,28 @@ export interface ModelPricing {
   documentSearchPer1kRequests?: number; // Document search
   collectionsSearchPer1kRequests?: number; // xAI Collections search
 
-  // Image generation pricing (per image)
+  // Image generation pricing (per image) - for dedicated image models (Imagen, DALL-E)
   imageGenerationPerImage?: number; // Default cost per image
   imageGenerationPricing?: ImageGenerationPricing; // Detailed pricing by size/quality
+
+  // Native image output pricing - for models where image tokens are in completionTokens
+  // (e.g., Gemini image models via generateText)
+  // When set, image tokens are subtracted from text output and priced at this rate
+  imageOutputPer1MTokens?: number; // e.g., $60/1M for Gemini image output
+  imageOutputTokensBySize?: Record<string, number>; // e.g., { "1K": 1120, "2K": 1680 }
+  imageOutputDefaultSize?: string; // Default size key when imageSize is not specified (e.g., "1K")
 }
 
 /**
- * Image generation pricing by size and quality
+ * Image generation pricing by size and quality.
+ * Keys can be:
+ * - Pixel-count categories for Gemini native image gen: "512px", "1K", "2K", "4K"
+ *   (aspect-ratio independent, based on total pixel count)
+ * - Fixed resolutions for Imagen/OpenAI: "1024x1024", "1536x1536"
+ * - Quality+resolution for OpenAI: "hd-1024x1024"
  */
 export interface ImageGenerationPricing {
-  [sizeOrQuality: string]: number; // e.g., "1024x1024": 0.04, "hd-1024x1024": 0.08
+  [sizeOrQuality: string]: number;
 }
 
 export interface ProviderPricing {

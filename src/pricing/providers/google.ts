@@ -53,13 +53,22 @@ export const googlePricing: ProviderPricing = {
   // Gemini 3 Pro Image Preview - Native image generation
   "gemini-3-pro-image-preview": {
     inputPer1MTokens: 2, // Text input follows 3 Pro pricing
-    outputPer1MTokens: 120, // Estimated based on 2.5 Flash Image pricing
+    outputPer1MTokens: 12, // Text/thinking output (same as 3 Pro)
     reasoningPer1MTokens: 12,
-    imageGenerationPerImage: 0.05, // Estimated for Pro tier
-    imageGenerationPricing: {
-      "1024x1024": 0.134,
-      "2048x2048": 0.24,
+    imageOutputPer1MTokens: 60,
+    imageOutputTokensBySize: {
+      "1K": 1120,
+      "2K": 1680,
+      "4K": 2520,
     },
+    imageGenerationPricing: { // Exact per-image prices from Google
+      "512px": 0.045,
+      "1K": 0.067,
+      "2K": 0.101,
+      "4K": 0.151,
+    },
+    imageGenerationPerImage: 0.067, // Default 1K
+    imageOutputDefaultSize: "1K",
     webSearchPer1kRequests: 14,
     googleMapsPer1kRequests: 7,
   },
@@ -78,6 +87,51 @@ export const googlePricing: ProviderPricing = {
     reasoningPer1MTokens: 3,
     webSearchPer1kRequests: 14,
     googleMapsPer1kRequests: 7,
+  },
+  // Gemini 3.1 Flash Image Preview - Native image generation (grounding: $14/1k)
+  // Input: $0.25/1M tokens, Output: $1.50/1M tokens (text/thinking), $60/1M tokens (images)
+  // Image output: $0.045 per 0.5K, $0.067 per 1K, $0.101 per 2K, $0.151 per 4K
+  "gemini-3.1-flash-image-preview": {
+    inputPer1MTokens: 0.25,
+    outputPer1MTokens: 1.5, // Text and thinking output
+    reasoningPer1MTokens: 1.5,
+    imageOutputPer1MTokens: 60,
+    imageOutputTokensBySize: {
+      "512px": 747,
+      "1K": 1120,
+      "2K": 1680,
+      "4K": 2520,
+    },
+    imageGenerationPricing: { // Exact per-image prices from Google
+      "512px": 0.045,
+      "1K": 0.067,
+      "2K": 0.101,
+      "4K": 0.151,
+    },
+    imageGenerationPerImage: 0.067, // Default 1K
+    imageOutputDefaultSize: "1K",
+    webSearchPer1kRequests: 14,
+  },
+  "gemini-3.1-flash-image": {
+    inputPer1MTokens: 0.25,
+    outputPer1MTokens: 1.5, // Text and thinking output
+    reasoningPer1MTokens: 1.5,
+    imageOutputPer1MTokens: 60,
+    imageOutputTokensBySize: {
+      "512px": 747,
+      "1K": 1120,
+      "2K": 1680,
+      "4K": 2520,
+    },
+    imageGenerationPricing: { // Exact per-image prices from Google
+      "512px": 0.045,
+      "1K": 0.067,
+      "2K": 0.101,
+      "4K": 0.151,
+    },
+    imageGenerationPerImage: 0.067, // Default 1K
+    imageOutputDefaultSize: "1K",
+    webSearchPer1kRequests: 14,
   },
   // Gemini 2.5 Pro - with long context pricing (grounding: $35/1k, maps: $7/1k)
   // Output price includes thinking tokens
@@ -266,12 +320,18 @@ export const googlePricing: ProviderPricing = {
   // Gemini 2.5 Flash Image - Native image generation
   "gemini-2.5-flash-image": {
     inputPer1MTokens: 0.3, // Text input follows 2.5 Flash pricing
-    outputPer1MTokens: 30, // $30/1M tokens for image output
-    imageGenerationPerImage: 0.039, // Standard 1K image (1290 tokens)
-    imageGenerationPricing: {
-      "1024x1024": 0.039, // 1K standard
-      "2048x2048": 0.134, // 2K large (1120 tokens)
+    outputPer1MTokens: 2.5, // Text output (same as 2.5 Flash)
+    imageOutputPer1MTokens: 30,
+    imageOutputTokensBySize: {
+      "1K": 1290,
+      "2K": 4480,
     },
+    imageGenerationPricing: { // Exact per-image prices from Google
+      "1K": 0.039,
+      "2K": 0.134,
+    },
+    imageGenerationPerImage: 0.039, // Default 1K
+    imageOutputDefaultSize: "1K",
   },
   // Gemini 2.5 Flash TTS - Text-to-Speech
   "gemini-2.5-flash-tts": {

@@ -115,6 +115,7 @@ interface ModelTrackingData {
   webSearchRequests: number;
   googleMapsRequests: number;
   imageGenerations: number;
+  imageSize?: string;
   requestCount: number;
 }
 
@@ -174,6 +175,9 @@ export function createMultiModelTracker(
     data.webSearchRequests += opts?.webSearchRequests ?? 0;
     data.googleMapsRequests += opts?.googleMapsRequests ?? 0;
     data.imageGenerations += opts?.imageGenerations ?? 0;
+    if (opts?.imageSize) {
+      data.imageSize = opts.imageSize;
+    }
     data.requestCount++;
   }
 
@@ -199,7 +203,7 @@ export function createMultiModelTracker(
       const data = getOrCreateModelData(modelId);
       addUsageToData(data, usage, opts);
 
-      let cost = calculateModelCost(modelId, data);
+      let cost = calculateModelCost(modelId, data, opts?.imageSize ?? data.imageSize);
 
       if (opts?.costMultiplier != null) {
         cost = multiplyCostBreakdown(cost, opts.costMultiplier);
@@ -250,7 +254,7 @@ export function createMultiModelTracker(
         model,
         requestCount: data.requestCount,
         usage: trackingDataToUsage(data),
-        cost: calculateModelCost(model, data),
+        cost: calculateModelCost(model, data, data.imageSize),
       };
     },
 
@@ -263,7 +267,7 @@ export function createMultiModelTracker(
         model,
         requestCount: data.requestCount,
         usage: trackingDataToUsage(data),
-        cost: calculateModelCost(model, data),
+        cost: calculateModelCost(model, data, data.imageSize),
       }));
     },
 
@@ -287,7 +291,7 @@ export function createMultiModelTracker(
       };
 
       for (const [model, data] of modelData.entries()) {
-        total = addCostBreakdowns(total, calculateModelCost(model, data));
+        total = addCostBreakdowns(total, calculateModelCost(model, data, data.imageSize));
       }
 
       return roundCostBreakdown(total);

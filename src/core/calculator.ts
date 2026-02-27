@@ -122,11 +122,6 @@ export function calculateCost(options: CalculateCostOptions): CostBreakdown {
     effectivePricing.inputPer1MTokens,
   );
 
-  const outputCost = costFromTokens(
-    usageDetails.textTokens,
-    effectivePricing.outputPer1MTokens,
-  );
-
   const cacheReadCost = costFromTokens(
     usageDetails.cacheReadTokens,
     effectivePricing.cacheReadPer1MTokens,
@@ -140,6 +135,49 @@ export function calculateCost(options: CalculateCostOptions): CostBreakdown {
   const reasoningCost = costFromTokens(
     usageDetails.reasoningTokens,
     effectivePricing.reasoningPer1MTokens,
+  );
+
+  // Calculate image generation cost and determine image token adjustment
+  let imageGenerationCost = 0;
+  let imageOutputTokens = 0; // Tokens to subtract from text output (native image gen only)
+
+  if (imageGenerations > 0) {
+    if (pricing.imageOutputTokensBySize) {
+      // Native image generation (e.g., Gemini image models via generateText)
+      // Image tokens are included in completionTokens — subtract them from text output
+      const sizeKey = imageSize ?? pricing.imageOutputDefaultSize ?? "1K";
+      const tokensPerImage = pricing.imageOutputTokensBySize[sizeKey]
+        ?? pricing.imageOutputTokensBySize[pricing.imageOutputDefaultSize ?? "1K"]
+        ?? 1120; // fallback: ~1K image
+
+      imageOutputTokens = imageGenerations * tokensPerImage;
+
+      // Use exact per-image price from imageGenerationPricing if available,
+      // otherwise compute from token rate (imageOutputPer1MTokens)
+      if (pricing.imageGenerationPricing?.[sizeKey]) {
+        imageGenerationCost = imageGenerations * pricing.imageGenerationPricing[sizeKey];
+      } else if (pricing.imageGenerationPerImage) {
+        imageGenerationCost = imageGenerations * pricing.imageGenerationPerImage;
+      } else if (pricing.imageOutputPer1MTokens) {
+        imageGenerationCost = costFromTokens(imageOutputTokens, pricing.imageOutputPer1MTokens);
+      }
+    } else {
+      // Dedicated image model (e.g., Imagen, DALL-E): flat per-image pricing
+      let pricePerImage = pricing.imageGenerationPerImage ?? 0;
+      if (imageSize && pricing.imageGenerationPricing?.[imageSize]) {
+        pricePerImage = pricing.imageGenerationPricing[imageSize];
+      }
+      imageGenerationCost = imageGenerations * pricePerImage;
+    }
+  }
+
+  // Calculate text output cost, subtracting image tokens for native image gen models
+  // This prevents double-counting: image tokens are priced at imageOutputPer1MTokens,
+  // not at the text outputPer1MTokens rate
+  const textOutputTokens = Math.max(0, usageDetails.textTokens - imageOutputTokens);
+  const outputCost = costFromTokens(
+    textOutputTokens,
+    effectivePricing.outputPer1MTokens,
   );
 
   // Calculate web search cost
@@ -186,17 +224,6 @@ export function calculateCost(options: CalculateCostOptions): CostBreakdown {
   let collectionsSearchCost = 0;
   if (collectionsSearchRequests > 0 && pricing.collectionsSearchPer1kRequests) {
     collectionsSearchCost = (collectionsSearchRequests / 1000) * pricing.collectionsSearchPer1kRequests;
-  }
-
-  // Calculate image generation cost
-  let imageGenerationCost = 0;
-  if (imageGenerations > 0) {
-    // Try to get price for specific size/quality, fall back to default
-    let pricePerImage = pricing.imageGenerationPerImage ?? 0;
-    if (imageSize && pricing.imageGenerationPricing?.[imageSize]) {
-      pricePerImage = pricing.imageGenerationPricing[imageSize];
-    }
-    imageGenerationCost = imageGenerations * pricePerImage;
   }
 
   const totalCost =
