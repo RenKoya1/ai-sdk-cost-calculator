@@ -2,6 +2,8 @@ import type { ProviderPricing } from "../types";
 
 // Source: https://ai.google.dev/gemini-api/docs/pricing (Jan 2026)
 // Grounding with Google Search: $14-35/1k requests depending on model
+//   - Gemini 3 models: 5,000 queries/month free (aggregated across all Gemini 3 models), then $14/1k
+//   - Input tokens provided by grounding are NOT charged
 // Google Maps (Dynamic Maps): $7/1k requests
 export const googlePricing: ProviderPricing = {
   // Gemini 3.1 Pro Preview - with long context pricing (grounding: $14/1k, maps: N/A)
@@ -61,7 +63,8 @@ export const googlePricing: ProviderPricing = {
       "2K": 1680,
       "4K": 2520,
     },
-    imageGenerationPricing: { // Exact per-image prices from Google
+    imageGenerationPricing: {
+      // Exact per-image prices from Google
       "512px": 0.045,
       "1K": 0.067,
       "2K": 0.101,
@@ -102,7 +105,8 @@ export const googlePricing: ProviderPricing = {
       "2K": 1680,
       "4K": 2520,
     },
-    imageGenerationPricing: { // Exact per-image prices from Google
+    imageGenerationPricing: {
+      // Exact per-image prices from Google
       "512px": 0.045,
       "1K": 0.067,
       "2K": 0.101,
@@ -123,7 +127,8 @@ export const googlePricing: ProviderPricing = {
       "2K": 1680,
       "4K": 2520,
     },
-    imageGenerationPricing: { // Exact per-image prices from Google
+    imageGenerationPricing: {
+      // Exact per-image prices from Google
       "512px": 0.045,
       "1K": 0.067,
       "2K": 0.101,
@@ -131,6 +136,21 @@ export const googlePricing: ProviderPricing = {
     },
     imageGenerationPerImage: 0.067, // Default 1K
     imageOutputDefaultSize: "1K",
+    webSearchPer1kRequests: 14,
+  },
+  // Gemini 3.1 Flash Lite Preview - Lightweight model (grounding: $14/1k, no maps)
+  // Input: $0.25/1M (text/image/video), $0.50/1M (audio)
+  // Output: $1.50/1M (including thinking), Cache: $0.025/1M read, $1.00/1M/hour storage
+  "gemini-3.1-flash-lite-preview": {
+    inputPer1MTokens: 0.25,
+    outputPer1MTokens: 1.5,
+    cacheReadPer1MTokens: 0.025,
+    webSearchPer1kRequests: 14,
+  },
+  "gemini-3.1-flash-lite": {
+    inputPer1MTokens: 0.25,
+    outputPer1MTokens: 1.5,
+    cacheReadPer1MTokens: 0.025,
     webSearchPer1kRequests: 14,
   },
   // Gemini 2.5 Pro - with long context pricing (grounding: $35/1k, maps: $7/1k)
@@ -326,7 +346,8 @@ export const googlePricing: ProviderPricing = {
       "1K": 1290,
       "2K": 4480,
     },
-    imageGenerationPricing: { // Exact per-image prices from Google
+    imageGenerationPricing: {
+      // Exact per-image prices from Google
       "1K": 0.039,
       "2K": 0.134,
     },

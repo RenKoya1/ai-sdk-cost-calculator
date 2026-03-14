@@ -2,6 +2,23 @@ import type { ProviderPricing } from "../types";
 
 // Source: https://openai.com/api/pricing/ (via pricepertoken.com 2026)
 export const openaiPricing: ProviderPricing = {
+  // GPT-5.4 Series
+  "gpt-5.4": {
+    inputPer1MTokens: 2.5,
+    outputPer1MTokens: 15,
+    cacheReadPer1MTokens: 0.25,
+    longContextThreshold: 272000,
+    longContextInputPer1MTokens: 5.0,
+    longContextOutputPer1MTokens: 22.5,
+    longContextCacheReadPer1MTokens: 0.5,
+  },
+  "gpt-5.4-pro": {
+    inputPer1MTokens: 30,
+    outputPer1MTokens: 180,
+    longContextThreshold: 272000,
+    longContextInputPer1MTokens: 60,
+    longContextOutputPer1MTokens: 270,
+  },
   // GPT-5 Series
   "gpt-5.2": {
     inputPer1MTokens: 1.75,
@@ -183,6 +200,11 @@ export const openaiPricing: ProviderPricing = {
     webSearchPer1kRequests: 10,
     webSearchTokensPerRequest: 8000,
   },
+  // GPT-4.5 Series
+  "gpt-4.5-preview": {
+    inputPer1MTokens: 75,
+    outputPer1MTokens: 150,
+  },
   // GPT-4 Turbo
   "gpt-4-turbo": {
     inputPer1MTokens: 10,
@@ -211,6 +233,11 @@ export const openaiPricing: ProviderPricing = {
     outputPer1MTokens: 1.5,
   },
   // GPT Realtime (audio streaming)
+  "gpt-realtime-1.5": {
+    inputPer1MTokens: 4,
+    outputPer1MTokens: 16,
+    cacheReadPer1MTokens: 0.4,
+  },
   "gpt-realtime": {
     inputPer1MTokens: 4,
     outputPer1MTokens: 16,
