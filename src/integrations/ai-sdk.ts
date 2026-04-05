@@ -2,7 +2,7 @@ import type { LanguageModelUsage, LanguageModel } from "ai";
 import { calculateCost } from "../core/calculator";
 import type { CostBreakdown } from "../core/types";
 import type { ModelPricing } from "../pricing";
-import { addCostBreakdowns, emptyCostBreakdown, multiplyCostBreakdown } from "../shared/cost";
+import { addCostBreakdowns, emptyCostBreakdown, multiplyCostBreakdown, roundToMicroDollars } from "../shared/cost";
 import {
   detectRequestsFromResult,
   type DetectOptions,
@@ -187,6 +187,11 @@ export interface CostAwareAI {
   getRequestCount(): number;
 
   /**
+   * Add a raw USD cost without a model (e.g., external API fees)
+   */
+  addCost(amount: number, label?: string): CostBreakdown;
+
+  /**
    * Reset all tracking
    */
   reset(): void;
@@ -212,6 +217,7 @@ export function createCostAwareAI(
 ): CostAwareAI {
   const { customPricing = {}, onCost } = options;
   const modelStats = new Map<string, ModelStats>();
+  const additionalCosts: Array<{ label?: string; amount: number }> = [];
 
   function track(modelId: string, cost: CostBreakdown): void {
     const existing = modelStats.get(modelId);
@@ -316,6 +322,12 @@ export function createCostAwareAI(
       for (const stats of modelStats.values()) {
         total = addCostBreakdowns(total, stats.cost);
       }
+
+      // Add model-free additional costs
+      const additionalTotal = additionalCosts.reduce((sum, c) => sum + c.amount, 0);
+      total.additionalCost += additionalTotal;
+      total.totalCost += additionalTotal;
+
       return total;
     },
 
@@ -327,8 +339,30 @@ export function createCostAwareAI(
       return count;
     },
 
+    addCost(amount: number, label?: string): CostBreakdown {
+      additionalCosts.push({ label, amount });
+
+      const cost = emptyCostBreakdown();
+      cost.additionalCost = roundToMicroDollars(amount);
+      cost.totalCost = roundToMicroDollars(amount);
+
+      if (onCost) {
+        const emptyUsage: LanguageModelUsage = {
+          inputTokens: 0,
+          outputTokens: 0,
+          totalTokens: 0,
+          inputTokenDetails: { noCacheTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
+          outputTokenDetails: { textTokens: 0, reasoningTokens: 0 },
+        };
+        onCost(label ?? "_additional", cost, emptyUsage);
+      }
+
+      return cost;
+    },
+
     reset(): void {
       modelStats.clear();
+      additionalCosts.length = 0;
     },
   };
 }

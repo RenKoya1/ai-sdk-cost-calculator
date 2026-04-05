@@ -11,6 +11,8 @@ export interface CostBreakdown {
   documentSearchCost: number;
   collectionsSearchCost: number;
   imageGenerationCost: number;
+  /** Additional costs added directly in USD (model-free) */
+  additionalCost: number;
   totalCost: number;
   currency: "USD";
   isLongContext: boolean;

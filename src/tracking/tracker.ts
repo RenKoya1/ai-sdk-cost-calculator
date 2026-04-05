@@ -2,7 +2,7 @@ import type { LanguageModelUsage, LanguageModel } from "ai";
 import { calculateCost } from "../core/calculator";
 import type { CostBreakdown } from "../core/types";
 import type { ModelPricing } from "../pricing";
-import { addCostBreakdowns, roundCostBreakdown, multiplyCostBreakdown } from "../shared/cost";
+import { addCostBreakdowns, roundCostBreakdown, multiplyCostBreakdown, emptyCostBreakdown, roundToMicroDollars } from "../shared/cost";
 import {
   detectRequestsFromResult,
   type DetectOptions,
@@ -95,6 +95,21 @@ export interface MultiModelCostTracker {
   resetModel(model: string): void;
 
   /**
+   * Add a raw USD cost without a model (e.g., external API fees)
+   */
+  addCost(amount: number, label?: string): CostBreakdown;
+
+  /**
+   * Get all additional (model-free) costs
+   */
+  getAdditionalCosts(): Array<{ label?: string; amount: number }>;
+
+  /**
+   * Get total additional cost
+   */
+  getAdditionalCostTotal(): number;
+
+  /**
    * Reset all tracking
    */
   reset(): void;
@@ -155,6 +170,7 @@ export function createMultiModelTracker(
 ): MultiModelCostTracker {
   const { customPricing = {}, onCost } = options;
   const modelData = new Map<string, ModelTrackingData>();
+  const additionalCosts: Array<{ label?: string; amount: number }> = [];
 
   function getOrCreateModelData(model: string): ModelTrackingData {
     let data = modelData.get(model);
@@ -272,27 +288,16 @@ export function createMultiModelTracker(
     },
 
     getTotal(): CostBreakdown {
-      let total: CostBreakdown = {
-        inputCost: 0,
-        outputCost: 0,
-        cacheReadCost: 0,
-        cacheWriteCost: 0,
-        reasoningCost: 0,
-        webSearchCost: 0,
-        googleMapsCost: 0,
-        xSearchCost: 0,
-        codeExecutionCost: 0,
-        documentSearchCost: 0,
-        collectionsSearchCost: 0,
-        imageGenerationCost: 0,
-        totalCost: 0,
-        currency: "USD",
-        isLongContext: false,
-      };
+      let total = emptyCostBreakdown();
 
       for (const [model, data] of modelData.entries()) {
         total = addCostBreakdowns(total, calculateModelCost(model, data, data.imageSize));
       }
+
+      // Add model-free additional costs
+      const additionalTotal = additionalCosts.reduce((sum, c) => sum + c.amount, 0);
+      total.additionalCost += additionalTotal;
+      total.totalCost += additionalTotal;
 
       return roundCostBreakdown(total);
     },
@@ -305,12 +310,35 @@ export function createMultiModelTracker(
       return total;
     },
 
+    addCost(amount: number, label?: string): CostBreakdown {
+      additionalCosts.push({ label, amount });
+
+      const cost = emptyCostBreakdown();
+      cost.additionalCost = roundToMicroDollars(amount);
+      cost.totalCost = roundToMicroDollars(amount);
+
+      if (onCost) {
+        onCost(label ?? "_additional", cost);
+      }
+
+      return cost;
+    },
+
+    getAdditionalCosts(): Array<{ label?: string; amount: number }> {
+      return [...additionalCosts];
+    },
+
+    getAdditionalCostTotal(): number {
+      return roundToMicroDollars(additionalCosts.reduce((sum, c) => sum + c.amount, 0));
+    },
+
     resetModel(model: string): void {
       modelData.delete(model);
     },
 
     reset(): void {
       modelData.clear();
+      additionalCosts.length = 0;
     },
   };
 }

@@ -253,6 +253,7 @@ export function calculateCost(options: CalculateCostOptions): CostBreakdown {
     documentSearchCost: roundToMicroDollars(documentSearchCost),
     collectionsSearchCost: roundToMicroDollars(collectionsSearchCost),
     imageGenerationCost: roundToMicroDollars(imageGenerationCost),
+    additionalCost: 0,
     totalCost: roundToMicroDollars(totalCost),
     currency: "USD",
     isLongContext: effectivePricing.isLongContext,
@@ -307,6 +308,9 @@ export function formatCostBreakdown(
   }
   if (result.imageGenerationCost > 0) {
     lines.push(`Image Gen:    ${formatCost(result.imageGenerationCost, decimals)}`);
+  }
+  if (result.additionalCost > 0) {
+    lines.push(`Additional:   ${formatCost(result.additionalCost, decimals)}`);
   }
   lines.push(`Total:        ${formatCost(result.totalCost, decimals)}`);
 
