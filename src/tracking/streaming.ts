@@ -2,7 +2,11 @@ import { LanguageModelUsage } from "ai";
 import { calculateCost } from "../core/calculator";
 import type { CostBreakdown } from "../core/types";
 import type { ModelPricing } from "../pricing";
-import { multiplyCostBreakdown } from "../shared/cost";
+import {
+  addCostBreakdowns,
+  emptyCostBreakdown,
+  multiplyCostBreakdown,
+} from "../shared/cost";
 import {
   addUsageToTotals,
   createEmptyUsageTotals,
@@ -28,12 +32,20 @@ export function createCostTracker(options: CreateCostTrackerOptions): CostTracke
   const { model, customPricing, costMultiplier } = options;
 
   let totals = createEmptyUsageTotals();
+  let cost = emptyCostBreakdown();
   let requestCount = 0;
 
   return {
+    // Each addUsage represents one completion. Pricing is computed per-call so
+    // long-context thresholds and multipliers apply correctly without being
+    // distorted by cumulative token totals from prior calls.
     addUsage(usage: LanguageModelUsage): void {
+      let delta = calculateCost({ model, usage, customPricing });
+      if (costMultiplier != null) {
+        delta = multiplyCostBreakdown(delta, costMultiplier);
+      }
       addUsageToTotals(totals, usage);
-
+      cost = addCostBreakdowns(cost, delta);
       requestCount++;
     },
 
@@ -42,16 +54,6 @@ export function createCostTracker(options: CreateCostTrackerOptions): CostTracke
     },
 
     getTotalCost(): CostBreakdown {
-      let cost = calculateCost({
-        model,
-        usage: this.getTotalUsage(),
-        customPricing,
-      });
-
-      if (costMultiplier != null) {
-        cost = multiplyCostBreakdown(cost, costMultiplier);
-      }
-
       return cost;
     },
 
@@ -61,6 +63,7 @@ export function createCostTracker(options: CreateCostTrackerOptions): CostTracke
 
     reset(): void {
       totals = createEmptyUsageTotals();
+      cost = emptyCostBreakdown();
       requestCount = 0;
     },
   };

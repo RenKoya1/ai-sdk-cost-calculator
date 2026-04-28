@@ -6,6 +6,16 @@ export interface ModelPricing {
   cacheWritePer1MTokens?: number;
   reasoningPer1MTokens?: number;
 
+  // Audio pricing — text/image/video tokens are charged at input/output rates
+  // above; audio tokens are charged here when separately specified by caller
+  // (Gemini 2.5/3 Flash, Live API, TTS).
+  audioInputPer1MTokens?: number;
+  audioOutputPer1MTokens?: number;
+
+  // Context cache storage (Gemini): charged per hour the cache exists.
+  // Caller supplies token-hours via cacheStorageTokenHours.
+  cacheStoragePer1MTokensPerHour?: number;
+
   // Long context pricing (> threshold tokens)
   longContextThreshold?: number; // Default: 200000
   longContextInputPer1MTokens?: number;

@@ -121,21 +121,33 @@ interface Step {
   toolResults?: unknown[];
 }
 
+interface GroundingMetadata {
+  webSearchQueries?: unknown[];
+  searchEntryPoint?: unknown;
+  groundingChunks?: unknown[];
+  groundingSupports?: unknown[];
+  // Maps grounding signals (best-effort; Google has not stabilized field names)
+  googleMapsWidgetContextToken?: unknown;
+  mapsGroundingMetadata?: unknown;
+  placeAnnotations?: unknown[];
+}
+
 interface ProviderMetadata {
   google?: {
-    groundingMetadata?: {
-      webSearchQueries?: unknown[];
-      searchEntryPoint?: unknown;
-      groundingChunks?: unknown[];
-      groundingSupports?: unknown[];
-    };
+    groundingMetadata?: GroundingMetadata;
   };
   [key: string]: unknown;
+}
+
+interface GeneratedFileLike {
+  mediaType?: string;
+  mimeType?: string;
 }
 
 export interface ResultWithToolCalls {
   toolCalls?: ToolCall[];
   steps?: Step[];
+  files?: GeneratedFileLike[];
   experimental_providerMetadata?: ProviderMetadata;
   providerMetadata?: ProviderMetadata;
 }
@@ -152,6 +164,31 @@ function createToolMatcher(defaultTools: string[], customTools?: string[]): (nam
     const lower = name.toLowerCase();
     return lowerTools.some((tool) => lower === tool || lower.includes(tool));
   };
+}
+
+type CountField = Exclude<keyof DetectedRequests, never>;
+
+interface MatcherEntry {
+  match: (name: string) => boolean;
+  field: CountField;
+}
+
+function countToolCalls(
+  toolCalls: ToolCall[] | undefined,
+  matchers: readonly MatcherEntry[],
+  counts: DetectedRequests,
+): void {
+  if (!toolCalls || !Array.isArray(toolCalls)) return;
+  for (const toolCall of toolCalls) {
+    const name = getToolName(toolCall);
+    if (!name) continue;
+    for (const { match, field } of matchers) {
+      if (match(name)) {
+        counts[field]++;
+        break;
+      }
+    }
+  }
 }
 
 /**
@@ -185,97 +222,67 @@ export function detectRequestsFromResult(
   result: ResultWithToolCalls,
   options?: DetectOptions,
 ): DetectedRequests {
-  let webSearchRequests = 0;
-  let googleMapsRequests = 0;
-  let xSearchRequests = 0;
-  let codeExecutionRequests = 0;
-  let documentSearchRequests = 0;
-  let collectionsSearchRequests = 0;
-  let imageGenerations = 0;
+  const counts: DetectedRequests = {
+    webSearchRequests: 0,
+    googleMapsRequests: 0,
+    xSearchRequests: 0,
+    codeExecutionRequests: 0,
+    documentSearchRequests: 0,
+    collectionsSearchRequests: 0,
+    imageGenerations: 0,
+  };
 
-  const isWebSearchTool = createToolMatcher(DEFAULT_WEB_SEARCH_TOOLS, options?.webSearchTools);
-  const isGoogleMapsTool = createToolMatcher(DEFAULT_GOOGLE_MAPS_TOOLS, options?.googleMapsTools);
-  const isXSearchTool = createToolMatcher(DEFAULT_X_SEARCH_TOOLS, options?.xSearchTools);
-  const isCodeExecutionTool = createToolMatcher(DEFAULT_CODE_EXECUTION_TOOLS, options?.codeExecutionTools);
-  const isDocumentSearchTool = createToolMatcher(DEFAULT_DOCUMENT_SEARCH_TOOLS, options?.documentSearchTools);
-  const isCollectionsSearchTool = createToolMatcher(DEFAULT_COLLECTIONS_SEARCH_TOOLS, options?.collectionsSearchTools);
-  const isImageGenerationTool = createToolMatcher(DEFAULT_IMAGE_GENERATION_TOOLS, options?.imageGenerationTools);
+  const matchers: readonly MatcherEntry[] = [
+    { match: createToolMatcher(DEFAULT_WEB_SEARCH_TOOLS, options?.webSearchTools), field: "webSearchRequests" },
+    { match: createToolMatcher(DEFAULT_GOOGLE_MAPS_TOOLS, options?.googleMapsTools), field: "googleMapsRequests" },
+    { match: createToolMatcher(DEFAULT_X_SEARCH_TOOLS, options?.xSearchTools), field: "xSearchRequests" },
+    { match: createToolMatcher(DEFAULT_CODE_EXECUTION_TOOLS, options?.codeExecutionTools), field: "codeExecutionRequests" },
+    { match: createToolMatcher(DEFAULT_DOCUMENT_SEARCH_TOOLS, options?.documentSearchTools), field: "documentSearchRequests" },
+    { match: createToolMatcher(DEFAULT_COLLECTIONS_SEARCH_TOOLS, options?.collectionsSearchTools), field: "collectionsSearchRequests" },
+    { match: createToolMatcher(DEFAULT_IMAGE_GENERATION_TOOLS, options?.imageGenerationTools), field: "imageGenerations" },
+  ];
 
-  // Check tool calls at the top level
-  if (result.toolCalls && Array.isArray(result.toolCalls)) {
-    for (const toolCall of result.toolCalls) {
-      const name = getToolName(toolCall);
-      if (name) {
-        if (isWebSearchTool(name)) {
-          webSearchRequests++;
-        } else if (isGoogleMapsTool(name)) {
-          googleMapsRequests++;
-        } else if (isXSearchTool(name)) {
-          xSearchRequests++;
-        } else if (isCodeExecutionTool(name)) {
-          codeExecutionRequests++;
-        } else if (isDocumentSearchTool(name)) {
-          documentSearchRequests++;
-        } else if (isCollectionsSearchTool(name)) {
-          collectionsSearchRequests++;
-        } else if (isImageGenerationTool(name)) {
-          imageGenerations++;
-        }
-      }
-    }
-  }
-
-  // Check steps for multi-step generations
+  countToolCalls(result.toolCalls, matchers, counts);
   if (result.steps && Array.isArray(result.steps)) {
     for (const step of result.steps) {
-      if (step.toolCalls && Array.isArray(step.toolCalls)) {
-        for (const toolCall of step.toolCalls) {
-          const name = getToolName(toolCall);
-          if (name) {
-            if (isWebSearchTool(name)) {
-              webSearchRequests++;
-            } else if (isGoogleMapsTool(name)) {
-              googleMapsRequests++;
-            } else if (isXSearchTool(name)) {
-              xSearchRequests++;
-            } else if (isCodeExecutionTool(name)) {
-              codeExecutionRequests++;
-            } else if (isDocumentSearchTool(name)) {
-              documentSearchRequests++;
-            } else if (isCollectionsSearchTool(name)) {
-              collectionsSearchRequests++;
-            } else if (isImageGenerationTool(name)) {
-              imageGenerations++;
-            }
-          }
-        }
+      countToolCalls(step.toolCalls, matchers, counts);
+    }
+  }
+
+  // Native image generation (e.g., Gemini Image models) returns images via
+  // result.files rather than tool calls. Count files with image mediaType.
+  if (Array.isArray(result.files)) {
+    for (const file of result.files) {
+      const mt = file?.mediaType ?? file?.mimeType;
+      if (typeof mt === "string" && mt.startsWith("image/")) {
+        counts.imageGenerations++;
       }
     }
   }
 
-  // Check Google Gemini grounding metadata
+  // Google Gemini grounding metadata
   const providerMetadata = result.experimental_providerMetadata ?? result.providerMetadata;
-  if (providerMetadata?.google?.groundingMetadata) {
-    const grounding = providerMetadata.google.groundingMetadata;
-    // Each web search query counts as a request
-    if (grounding.webSearchQueries && Array.isArray(grounding.webSearchQueries)) {
-      webSearchRequests += grounding.webSearchQueries.length;
+  const grounding = providerMetadata?.google?.groundingMetadata;
+  if (grounding) {
+    // Web search: each query is one billable request
+    if (Array.isArray(grounding.webSearchQueries)) {
+      counts.webSearchRequests += grounding.webSearchQueries.length;
     }
-    // If there's a search entry point but no queries, count as 1
-    if (grounding.searchEntryPoint && webSearchRequests === 0) {
-      webSearchRequests = 1;
+    if (grounding.searchEntryPoint && counts.webSearchRequests === 0) {
+      counts.webSearchRequests = 1;
+    }
+    // Maps grounding: any of these signals indicates the prompt was grounded
+    // with Google Maps. Count one billable request per grounded prompt.
+    const hasMapsSignal =
+      grounding.googleMapsWidgetContextToken != null ||
+      grounding.mapsGroundingMetadata != null ||
+      (Array.isArray(grounding.placeAnnotations) && grounding.placeAnnotations.length > 0);
+    if (hasMapsSignal && counts.googleMapsRequests === 0) {
+      counts.googleMapsRequests = 1;
     }
   }
 
-  return {
-    webSearchRequests,
-    googleMapsRequests,
-    xSearchRequests,
-    codeExecutionRequests,
-    documentSearchRequests,
-    collectionsSearchRequests,
-    imageGenerations,
-  };
+  return counts;
 }
 
 /**

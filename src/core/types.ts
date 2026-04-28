@@ -1,19 +1,33 @@
-export interface CostBreakdown {
-  inputCost: number;
-  outputCost: number;
-  cacheReadCost: number;
-  cacheWriteCost: number;
-  reasoningCost: number;
-  webSearchCost: number;
-  googleMapsCost: number;
-  xSearchCost: number;
-  codeExecutionCost: number;
-  documentSearchCost: number;
-  collectionsSearchCost: number;
-  imageGenerationCost: number;
-  /** Additional costs added directly in USD (model-free) */
-  additionalCost: number;
+/**
+ * Per-component cost field names. Used to drive iteration in
+ * roundCostBreakdown / multiplyCostBreakdown / addCostBreakdowns / emptyCostBreakdown
+ * so adding a new component only requires updating this list.
+ */
+export const COST_COMPONENT_FIELDS = [
+  "inputCost",
+  "outputCost",
+  "cacheReadCost",
+  "cacheWriteCost",
+  "cacheStorageCost",
+  "reasoningCost",
+  "audioInputCost",
+  "audioOutputCost",
+  "webSearchCost",
+  "googleMapsCost",
+  "xSearchCost",
+  "codeExecutionCost",
+  "documentSearchCost",
+  "collectionsSearchCost",
+  "imageGenerationCost",
+  "additionalCost",
+] as const;
+
+export type CostComponentField = (typeof COST_COMPONENT_FIELDS)[number];
+
+export type CostBreakdown = {
+  [K in CostComponentField]: number;
+} & {
   totalCost: number;
   currency: "USD";
   isLongContext: boolean;
-}
+};

@@ -1,8 +1,9 @@
 import type { LanguageModelUsage, LanguageModel } from "ai";
 import { calculateCost } from "../core/calculator";
 import type { CostBreakdown } from "../core/types";
+import { buildAdditionalCost } from "../integrations/ai-sdk";
 import type { ModelPricing } from "../pricing";
-import { addCostBreakdowns, roundCostBreakdown, multiplyCostBreakdown, emptyCostBreakdown, roundToMicroDollars } from "../shared/cost";
+import { addCostBreakdowns, roundCostBreakdown, multiplyCostBreakdown, emptyCostBreakdown } from "../shared/cost";
 import {
   detectRequestsFromResult,
   type DetectOptions,
@@ -24,10 +25,24 @@ export interface AddUsageOptions extends DetectOptions {
   webSearchRequests?: number;
   /** Number of Google Maps API requests made */
   googleMapsRequests?: number;
+  /** Number of xAI X Search requests */
+  xSearchRequests?: number;
+  /** Number of xAI Code Execution requests */
+  codeExecutionRequests?: number;
+  /** Number of xAI Document Search requests */
+  documentSearchRequests?: number;
+  /** Number of xAI Collections Search requests */
+  collectionsSearchRequests?: number;
   /** Number of images generated */
   imageGenerations?: number;
   /** Image size/quality for pricing lookup */
   imageSize?: string;
+  /** Audio input tokens (subset of usage.inputTokens) */
+  audioInputTokens?: number;
+  /** Audio output tokens (subset of usage.outputTokens) */
+  audioOutputTokens?: number;
+  /** Token-hours of context cache storage (Gemini) */
+  cacheStorageTokenHours?: number;
   /** Multiply all cost values by this factor (e.g., 1.5 for 150% markup) */
   costMultiplier?: number;
 }
@@ -126,10 +141,15 @@ export interface CreateMultiModelTrackerOptions {
 }
 
 interface ModelTrackingData {
+  /** Cumulative token usage (for display). Not used for pricing — pricing is per-call. */
   totals: UsageTokenTotals;
+  /** Accumulated, already-multiplied cost from each add() call. */
+  cost: CostBreakdown;
+  /** Cumulative tool/feature request counts (additive across calls). */
   webSearchRequests: number;
   googleMapsRequests: number;
   imageGenerations: number;
+  /** Last imageSize seen, used as fallback for getModel/getAllCosts display. */
   imageSize?: string;
   requestCount: number;
 }
@@ -137,6 +157,7 @@ interface ModelTrackingData {
 function createEmptyTrackingData(): ModelTrackingData {
   return {
     totals: createEmptyUsageTotals(),
+    cost: emptyCostBreakdown(),
     webSearchRequests: 0,
     googleMapsRequests: 0,
     imageGenerations: 0,
@@ -181,34 +202,6 @@ export function createMultiModelTracker(
     return data;
   }
 
-  function addUsageToData(
-    data: ModelTrackingData,
-    usage: LanguageModelUsage,
-    opts?: AddUsageOptions,
-  ): void {
-    addUsageToTotals(data.totals, usage);
-
-    data.webSearchRequests += opts?.webSearchRequests ?? 0;
-    data.googleMapsRequests += opts?.googleMapsRequests ?? 0;
-    data.imageGenerations += opts?.imageGenerations ?? 0;
-    if (opts?.imageSize) {
-      data.imageSize = opts.imageSize;
-    }
-    data.requestCount++;
-  }
-
-  function calculateModelCost(model: string, data: ModelTrackingData, imageSize?: string): CostBreakdown {
-    return calculateCost({
-      model,
-      usage: trackingDataToUsage(data),
-      customPricing: customPricing[model],
-      webSearchRequests: data.webSearchRequests,
-      googleMapsRequests: data.googleMapsRequests,
-      imageGenerations: data.imageGenerations,
-      imageSize,
-    });
-  }
-
   return {
     add(
       model: LanguageModel | string,
@@ -217,19 +210,41 @@ export function createMultiModelTracker(
     ): CostBreakdown {
       const modelId = getModelId(model);
       const data = getOrCreateModelData(modelId);
-      addUsageToData(data, usage, opts);
 
-      let cost = calculateModelCost(modelId, data, opts?.imageSize ?? data.imageSize);
+      // Price this call independently. Long-context threshold and per-call
+      // multiplier must NOT see cumulative token totals from prior calls.
+      let delta = calculateCost({
+        model: modelId,
+        usage,
+        customPricing: customPricing[modelId],
+        webSearchRequests: opts?.webSearchRequests,
+        googleMapsRequests: opts?.googleMapsRequests,
+        xSearchRequests: opts?.xSearchRequests,
+        codeExecutionRequests: opts?.codeExecutionRequests,
+        documentSearchRequests: opts?.documentSearchRequests,
+        collectionsSearchRequests: opts?.collectionsSearchRequests,
+        imageGenerations: opts?.imageGenerations,
+        imageSize: opts?.imageSize,
+        audioInputTokens: opts?.audioInputTokens,
+        audioOutputTokens: opts?.audioOutputTokens,
+        cacheStorageTokenHours: opts?.cacheStorageTokenHours,
+      });
 
       if (opts?.costMultiplier != null) {
-        cost = multiplyCostBreakdown(cost, opts.costMultiplier);
+        delta = multiplyCostBreakdown(delta, opts.costMultiplier);
       }
 
-      if (onCost) {
-        onCost(modelId, cost);
-      }
+      // Accumulate
+      addUsageToTotals(data.totals, usage);
+      data.cost = addCostBreakdowns(data.cost, delta);
+      data.webSearchRequests += opts?.webSearchRequests ?? 0;
+      data.googleMapsRequests += opts?.googleMapsRequests ?? 0;
+      data.imageGenerations += opts?.imageGenerations ?? 0;
+      if (opts?.imageSize) data.imageSize = opts.imageSize;
+      data.requestCount++;
 
-      return cost;
+      onCost?.(modelId, delta);
+      return delta;
     },
 
     onFinish<T extends { usage: LanguageModelUsage }>(
@@ -240,22 +255,18 @@ export function createMultiModelTracker(
       const modelId = getModelId(model);
 
       return async (result: T) => {
-        let finalOpts = opts;
-
-        // Auto-detect tool usage (enabled by default)
         const detected = detectRequestsFromResult(
           result as unknown as ResultWithToolCalls,
           opts,
         );
-        finalOpts = {
+        const enrichedOpts: AddUsageOptions = {
           ...opts,
           webSearchRequests: opts?.webSearchRequests ?? detected.webSearchRequests,
           googleMapsRequests: opts?.googleMapsRequests ?? detected.googleMapsRequests,
           imageGenerations: opts?.imageGenerations ?? detected.imageGenerations,
         };
 
-        const cost = this.add(modelId, result.usage, finalOpts);
-
+        const cost = this.add(modelId, result.usage, enrichedOpts);
         if (callback) {
           await callback({ ...result, cost });
         }
@@ -270,7 +281,7 @@ export function createMultiModelTracker(
         model,
         requestCount: data.requestCount,
         usage: trackingDataToUsage(data),
-        cost: calculateModelCost(model, data, data.imageSize),
+        cost: data.cost,
       };
     },
 
@@ -283,22 +294,18 @@ export function createMultiModelTracker(
         model,
         requestCount: data.requestCount,
         usage: trackingDataToUsage(data),
-        cost: calculateModelCost(model, data, data.imageSize),
+        cost: data.cost,
       }));
     },
 
     getTotal(): CostBreakdown {
       let total = emptyCostBreakdown();
-
-      for (const [model, data] of modelData.entries()) {
-        total = addCostBreakdowns(total, calculateModelCost(model, data, data.imageSize));
+      for (const data of modelData.values()) {
+        total = addCostBreakdowns(total, data.cost);
       }
-
-      // Add model-free additional costs
       const additionalTotal = additionalCosts.reduce((sum, c) => sum + c.amount, 0);
       total.additionalCost += additionalTotal;
       total.totalCost += additionalTotal;
-
       return roundCostBreakdown(total);
     },
 
@@ -312,15 +319,8 @@ export function createMultiModelTracker(
 
     addCost(amount: number, label?: string): CostBreakdown {
       additionalCosts.push({ label, amount });
-
-      const cost = emptyCostBreakdown();
-      cost.additionalCost = roundToMicroDollars(amount);
-      cost.totalCost = roundToMicroDollars(amount);
-
-      if (onCost) {
-        onCost(label ?? "_additional", cost);
-      }
-
+      const cost = buildAdditionalCost(amount);
+      onCost?.(label ?? "_additional", cost);
       return cost;
     },
 
@@ -329,7 +329,9 @@ export function createMultiModelTracker(
     },
 
     getAdditionalCostTotal(): number {
-      return roundToMicroDollars(additionalCosts.reduce((sum, c) => sum + c.amount, 0));
+      return buildAdditionalCost(
+        additionalCosts.reduce((sum, c) => sum + c.amount, 0),
+      ).additionalCost;
     },
 
     resetModel(model: string): void {

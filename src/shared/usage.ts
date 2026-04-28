@@ -31,22 +31,12 @@ export function addUsageToTotals(
   totals: UsageTokenTotals,
   usage: LanguageModelUsage,
 ): void {
-  const inputDetails = usage.inputTokenDetails;
-  if (inputDetails) {
-    totals.noCacheTokens += inputDetails.noCacheTokens ?? 0;
-    totals.cacheReadTokens += inputDetails.cacheReadTokens ?? 0;
-    totals.cacheWriteTokens += inputDetails.cacheWriteTokens ?? 0;
-  } else if (usage.inputTokens !== undefined) {
-    totals.noCacheTokens += usage.inputTokens;
-  }
-
-  const outputDetails = usage.outputTokenDetails;
-  if (outputDetails) {
-    totals.textTokens += outputDetails.textTokens ?? 0;
-    totals.reasoningTokens += outputDetails.reasoningTokens ?? 0;
-  } else if (usage.outputTokens !== undefined) {
-    totals.textTokens += usage.outputTokens;
-  }
+  const details = getUsageTokenDetails(usage);
+  totals.noCacheTokens += details.noCacheTokens;
+  totals.cacheReadTokens += details.cacheReadTokens;
+  totals.cacheWriteTokens += details.cacheWriteTokens;
+  totals.textTokens += details.textTokens;
+  totals.reasoningTokens += details.reasoningTokens;
 }
 
 export function totalsToUsage(totals: UsageTokenTotals): LanguageModelUsage {
@@ -76,19 +66,39 @@ export function getUsageTokenDetails(
   const inputDetails = usage.inputTokenDetails;
   const outputDetails = usage.outputTokenDetails;
 
-  let noCacheTokens = inputDetails?.noCacheTokens ?? 0;
-  let cacheReadTokens = inputDetails?.cacheReadTokens ?? 0;
-  let cacheWriteTokens = inputDetails?.cacheWriteTokens ?? 0;
+  // Cache read: prefer details, fall back to deprecated top-level cachedInputTokens
+  const cacheReadTokens =
+    inputDetails?.cacheReadTokens ?? usage.cachedInputTokens ?? 0;
+  const cacheWriteTokens = inputDetails?.cacheWriteTokens ?? 0;
 
-  let textTokens = outputDetails?.textTokens ?? 0;
-  let reasoningTokens = outputDetails?.reasoningTokens ?? 0;
-
-  if (!inputDetails && usage.inputTokens !== undefined) {
-    noCacheTokens = usage.inputTokens;
+  // noCacheTokens: prefer details. If details exist but noCacheTokens is
+  // undefined (some providers populate only cacheRead), derive from
+  // inputTokens - cacheRead - cacheWrite. If no details at all, use inputTokens.
+  let noCacheTokens: number;
+  if (inputDetails?.noCacheTokens !== undefined) {
+    noCacheTokens = inputDetails.noCacheTokens;
+  } else if (usage.inputTokens !== undefined) {
+    noCacheTokens = Math.max(
+      0,
+      usage.inputTokens - cacheReadTokens - cacheWriteTokens,
+    );
+  } else {
+    noCacheTokens = 0;
   }
 
-  if (!outputDetails && usage.outputTokens !== undefined) {
-    textTokens = usage.outputTokens;
+  // reasoningTokens: prefer details, fall back to deprecated top-level
+  const reasoningTokens =
+    outputDetails?.reasoningTokens ?? usage.reasoningTokens ?? 0;
+
+  // textTokens: prefer details. If details exist but textTokens is undefined,
+  // derive from outputTokens - reasoningTokens. If no details, use outputTokens.
+  let textTokens: number;
+  if (outputDetails?.textTokens !== undefined) {
+    textTokens = outputDetails.textTokens;
+  } else if (usage.outputTokens !== undefined) {
+    textTokens = Math.max(0, usage.outputTokens - reasoningTokens);
+  } else {
+    textTokens = 0;
   }
 
   const totalInputTokens =
