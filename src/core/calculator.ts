@@ -272,6 +272,10 @@ export function calculateCost(options: CalculateCostOptions): CostBreakdown {
     additionalCost: 0,
   };
 
+  // Defensive: clamp every cost component to ≥0. Negative costs are never
+  // valid — they only arise from upstream data anomalies (e.g., AI SDK
+  // providers occasionally emit negative noCacheTokens when cache size
+  // exceeds prompt size). Clamping here guarantees the breakdown contract.
   let totalCost = 0;
   const breakdown = {
     currency: "USD" as const,
@@ -279,9 +283,9 @@ export function calculateCost(options: CalculateCostOptions): CostBreakdown {
     totalCost: 0,
   } as CostBreakdown;
   for (const field of COST_COMPONENT_FIELDS) {
-    const rounded = roundToMicroDollars(components[field]);
-    breakdown[field] = rounded;
-    totalCost += components[field];
+    const value = components[field] > 0 ? components[field] : 0;
+    breakdown[field] = roundToMicroDollars(value);
+    totalCost += value;
   }
   breakdown.totalCost = roundToMicroDollars(totalCost);
   return breakdown;
