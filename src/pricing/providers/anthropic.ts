@@ -2,6 +2,18 @@ import type { ProviderPricing } from "../types";
 
 // Source: https://docs.anthropic.com/en/docs/about-claude/pricing (Feb 2026)
 export const anthropicPricing: ProviderPricing = {
+  // Claude Opus 4.7
+  "claude-opus-4-7": {
+    inputPer1MTokens: 5,
+    outputPer1MTokens: 25,
+    cacheReadPer1MTokens: 0.5,
+    cacheWritePer1MTokens: 6.25,
+    longContextThreshold: 200000,
+    longContextInputPer1MTokens: 10,
+    longContextOutputPer1MTokens: 37.5,
+    longContextCacheReadPer1MTokens: 1.0,
+    longContextCacheWritePer1MTokens: 12.5,
+  },
   // Claude Opus 4.6
   "claude-opus-4-6": {
     inputPer1MTokens: 5,
