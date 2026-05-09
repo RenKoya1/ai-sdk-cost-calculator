@@ -7,6 +7,14 @@ export { googlePricing } from "./providers/google";
 export { xaiPricing } from "./providers/xai";
 export { deepseekPricing } from "./providers/deepseek";
 export { perplexityPricing } from "./providers/perplexity";
+export { mistralPricing } from "./providers/mistral";
+export { groqPricing } from "./providers/groq";
+export { cerebrasPricing } from "./providers/cerebras";
+export { coherePricing } from "./providers/cohere";
+export { togetherPricing } from "./providers/together";
+export { fireworksPricing } from "./providers/fireworks";
+export { openrouterPricing } from "./providers/openrouter";
+export { glmPricing } from "./providers/glm";
 
 import { openaiPricing } from "./providers/openai";
 import { anthropicPricing } from "./providers/anthropic";
@@ -14,6 +22,14 @@ import { googlePricing } from "./providers/google";
 import { xaiPricing } from "./providers/xai";
 import { deepseekPricing } from "./providers/deepseek";
 import { perplexityPricing } from "./providers/perplexity";
+import { mistralPricing } from "./providers/mistral";
+import { groqPricing } from "./providers/groq";
+import { cerebrasPricing } from "./providers/cerebras";
+import { coherePricing } from "./providers/cohere";
+import { togetherPricing } from "./providers/together";
+import { fireworksPricing } from "./providers/fireworks";
+import { openrouterPricing } from "./providers/openrouter";
+import { glmPricing } from "./providers/glm";
 import type { ModelPricing, ProviderPricing } from "./types";
 
 // Provider name to pricing map
@@ -24,9 +40,21 @@ export const allPricing: Record<string, ProviderPricing> = {
   xai: xaiPricing,
   deepseek: deepseekPricing,
   perplexity: perplexityPricing,
+  mistral: mistralPricing,
+  groq: groqPricing,
+  cerebras: cerebrasPricing,
+  cohere: coherePricing,
+  togetherai: togetherPricing,
+  together: togetherPricing,
+  fireworks: fireworksPricing,
+  openrouter: openrouterPricing,
+  glm: glmPricing,
+  zhipu: glmPricing,
+  "z-ai": glmPricing,
 };
 
-// Combined flat pricing for all models
+// Combined flat pricing for all models. OpenRouter spread LAST so its
+// namespaced IDs (e.g., "anthropic/claude-...") never shadow native IDs.
 export const flatPricing: ProviderPricing = {
   ...openaiPricing,
   ...anthropicPricing,
@@ -34,6 +62,14 @@ export const flatPricing: ProviderPricing = {
   ...xaiPricing,
   ...deepseekPricing,
   ...perplexityPricing,
+  ...mistralPricing,
+  ...groqPricing,
+  ...cerebrasPricing,
+  ...coherePricing,
+  ...togetherPricing,
+  ...fireworksPricing,
+  ...glmPricing,
+  ...openrouterPricing,
 };
 
 export function getModelPricing(

@@ -9,11 +9,32 @@ import type { ProviderPricing } from "../types";
 // - Collections Search: $2.50
 // - View Image/Video: Token-based only (no additional charge)
 export const xaiPricing: ProviderPricing = {
-  // Grok 4.20
+  // Grok 4.3 (200K context, same pricing in higher context)
+  "grok-4.3": {
+    inputPer1MTokens: 1.25,
+    outputPer1MTokens: 2.5,
+    cacheReadPer1MTokens: 0.2,
+    webSearchPer1kRequests: 5,
+    xSearchPer1kRequests: 5,
+    codeExecutionPer1kRequests: 5,
+    documentSearchPer1kRequests: 5,
+    collectionsSearchPer1kRequests: 2.5,
+  },
+  "grok-4.3-latest": {
+    inputPer1MTokens: 1.25,
+    outputPer1MTokens: 2.5,
+    cacheReadPer1MTokens: 0.2,
+    webSearchPer1kRequests: 5,
+    xSearchPer1kRequests: 5,
+    codeExecutionPer1kRequests: 5,
+    documentSearchPer1kRequests: 5,
+    collectionsSearchPer1kRequests: 2.5,
+  },
+  // Grok 4.20 (200K context, same pricing in higher context)
   "grok-4.20-reasoning": {
-    inputPer1MTokens: 2.0,
-    outputPer1MTokens: 6.0,
-    cacheReadPer1MTokens: 0.5,
+    inputPer1MTokens: 1.25,
+    outputPer1MTokens: 2.5,
+    cacheReadPer1MTokens: 0.2,
     webSearchPer1kRequests: 5,
     xSearchPer1kRequests: 5,
     codeExecutionPer1kRequests: 5,
@@ -21,9 +42,9 @@ export const xaiPricing: ProviderPricing = {
     collectionsSearchPer1kRequests: 2.5,
   },
   "grok-4.20-0309-reasoning": {
-    inputPer1MTokens: 2.0,
-    outputPer1MTokens: 6.0,
-    cacheReadPer1MTokens: 0.5,
+    inputPer1MTokens: 1.25,
+    outputPer1MTokens: 2.5,
+    cacheReadPer1MTokens: 0.2,
     webSearchPer1kRequests: 5,
     xSearchPer1kRequests: 5,
     codeExecutionPer1kRequests: 5,
@@ -31,9 +52,9 @@ export const xaiPricing: ProviderPricing = {
     collectionsSearchPer1kRequests: 2.5,
   },
   "grok-4.20-non-reasoning": {
-    inputPer1MTokens: 2.0,
-    outputPer1MTokens: 6.0,
-    cacheReadPer1MTokens: 0.5,
+    inputPer1MTokens: 1.25,
+    outputPer1MTokens: 2.5,
+    cacheReadPer1MTokens: 0.2,
     webSearchPer1kRequests: 5,
     xSearchPer1kRequests: 5,
     codeExecutionPer1kRequests: 5,
@@ -41,9 +62,9 @@ export const xaiPricing: ProviderPricing = {
     collectionsSearchPer1kRequests: 2.5,
   },
   "grok-4.20-0309-non-reasoning": {
-    inputPer1MTokens: 2.0,
-    outputPer1MTokens: 6.0,
-    cacheReadPer1MTokens: 0.5,
+    inputPer1MTokens: 1.25,
+    outputPer1MTokens: 2.5,
+    cacheReadPer1MTokens: 0.2,
     webSearchPer1kRequests: 5,
     xSearchPer1kRequests: 5,
     codeExecutionPer1kRequests: 5,
@@ -51,9 +72,9 @@ export const xaiPricing: ProviderPricing = {
     collectionsSearchPer1kRequests: 2.5,
   },
   "grok-4.20-multi-agent-0309": {
-    inputPer1MTokens: 2.0,
-    outputPer1MTokens: 6.0,
-    cacheReadPer1MTokens: 0.5,
+    inputPer1MTokens: 1.25,
+    outputPer1MTokens: 2.5,
+    cacheReadPer1MTokens: 0.2,
     webSearchPer1kRequests: 5,
     xSearchPer1kRequests: 5,
     codeExecutionPer1kRequests: 5,
