@@ -282,6 +282,23 @@ export const xaiPricing: ProviderPricing = {
     outputPer1MTokens: 0,
     imageGenerationPerImage: 0.04, // Estimated based on market rates
   },
+  // Grok Imagine — per docs.x.ai/developers/models
+  // Billed per image; aspectRatio does not change price.
+  "grok-imagine-image": {
+    inputPer1MTokens: 0,
+    outputPer1MTokens: 0,
+    imageGenerationPerImage: 0.02,
+  },
+  "grok-imagine-image-quality": {
+    inputPer1MTokens: 0,
+    outputPer1MTokens: 0,
+    imageGenerationPerImage: 0.05,
+  },
+  "grok-imagine-image-pro": {
+    inputPer1MTokens: 0,
+    outputPer1MTokens: 0,
+    imageGenerationPerImage: 0.07,
+  },
   // Grok Beta (legacy)
   "grok-beta": {
     inputPer1MTokens: 5,

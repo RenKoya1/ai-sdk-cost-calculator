@@ -15,6 +15,7 @@ export { togetherPricing } from "./providers/together";
 export { fireworksPricing } from "./providers/fireworks";
 export { openrouterPricing } from "./providers/openrouter";
 export { glmPricing } from "./providers/glm";
+export { qwenPricing } from "./providers/qwen";
 
 import { openaiPricing } from "./providers/openai";
 import { anthropicPricing } from "./providers/anthropic";
@@ -30,6 +31,7 @@ import { togetherPricing } from "./providers/together";
 import { fireworksPricing } from "./providers/fireworks";
 import { openrouterPricing } from "./providers/openrouter";
 import { glmPricing } from "./providers/glm";
+import { qwenPricing } from "./providers/qwen";
 import type { ModelPricing, ProviderPricing } from "./types";
 
 // Provider name to pricing map
@@ -51,6 +53,9 @@ export const allPricing: Record<string, ProviderPricing> = {
   glm: glmPricing,
   zhipu: glmPricing,
   "z-ai": glmPricing,
+  qwen: qwenPricing,
+  dashscope: qwenPricing,
+  alibaba: qwenPricing,
 };
 
 // Combined flat pricing for all models. OpenRouter spread LAST so its
@@ -69,6 +74,7 @@ export const flatPricing: ProviderPricing = {
   ...togetherPricing,
   ...fireworksPricing,
   ...glmPricing,
+  ...qwenPricing,
   ...openrouterPricing,
 };
 

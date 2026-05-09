@@ -95,4 +95,17 @@ export const glmPricing: ProviderPricing = {
     outputPer1MTokens: 1.8,
     cacheReadPer1MTokens: 0.11,
   },
+
+  // Image generation — per docs.z.ai/guides/overview/pricing
+  // Billed per image, uniform regardless of resolution.
+  "glm-image": {
+    inputPer1MTokens: 0,
+    outputPer1MTokens: 0,
+    imageGenerationPerImage: 0.015,
+  },
+  "cogview-4": {
+    inputPer1MTokens: 0,
+    outputPer1MTokens: 0,
+    imageGenerationPerImage: 0.01,
+  },
 };
