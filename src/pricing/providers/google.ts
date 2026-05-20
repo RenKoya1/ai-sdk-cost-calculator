@@ -114,6 +114,19 @@ export const googlePricing: ProviderPricing = {
     webSearchPer1kRequests: 14,
     googleMapsPer1kRequests: 14,
   },
+  // Gemini 3.5 Flash
+  // Input: $1.50/1M, Output (incl. thinking): $9.00/1M
+  // Cache read: $0.15/1M, Cache storage: $1.00/1M/hour
+  // Grounding: $14/1k Search and Maps (5k free/month shared across Gemini 3)
+  "gemini-3.5-flash": {
+    inputPer1MTokens: 1.5,
+    outputPer1MTokens: 9,
+    cacheReadPer1MTokens: 0.15,
+    cacheStoragePer1MTokensPerHour: 1,
+    reasoningPer1MTokens: 9,
+    webSearchPer1kRequests: 14,
+    googleMapsPer1kRequests: 14,
+  },
   // Gemini 3.1 Flash Image Preview - Native image generation (grounding: $14/1k, no Maps)
   // Input: $0.50/1M tokens (text/image), Text+thinking output: $3/1M, Image output: $60/1M
   // Image output: $0.045 per 0.5K, $0.067 per 1K, $0.101 per 2K, $0.151 per 4K
