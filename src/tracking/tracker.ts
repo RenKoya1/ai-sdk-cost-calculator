@@ -257,7 +257,7 @@ export function createMultiModelTracker(
       return async (result: T) => {
         const detected = detectRequestsFromResult(
           result as unknown as ResultWithToolCalls,
-          opts,
+          { ...opts, model: modelId },
         );
         const enrichedOpts: AddUsageOptions = {
           ...opts,

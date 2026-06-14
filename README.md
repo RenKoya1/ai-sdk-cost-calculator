@@ -248,7 +248,8 @@ const result = await generateText({
 
 // Detect tool usage
 const { webSearchRequests, googleMapsRequests } = detectRequestsFromResult(result, {
-  webSearchTools: ["my_search"],  // Optional: add custom tool names
+  model: "gemini-2.0-flash",       // Pass the model for correct grounding billing
+  webSearchTools: ["my_search"],   // Optional: add custom tool names
 });
 
 const cost = calculateCost({
@@ -258,6 +259,17 @@ const cost = calculateCost({
   googleMapsRequests,
 });
 ```
+
+> **Pass `model` when detecting Google Search grounding.** Google bills grounding
+> differently by model family: the **Gemini 3** family is charged **per search
+> query** ($14/1k), while **Gemini 2.5 / 2.0 / 1.5** (and the same models on
+> **Vertex AI**) are charged **once per grounded prompt** ($35/1k for 2.5),
+> regardless of how many queries the model issued internally. Detection reads
+> grounding metadata from `providerMetadata.google` (`@ai-sdk/google`) **and**
+> `providerMetadata.googleVertex` / `providerMetadata.vertex`
+> (`@ai-sdk/google-vertex`), so Vertex AI is covered. Without `model` it falls
+> back to the conservative per-prompt count. The `withCost` / `getCost` /
+> tracker integrations pass the model automatically.
 
 #### Default Tool Names
 
@@ -559,10 +571,15 @@ const result = await generateText({
   tools: { web_search: searchTool, places: placesTool },
 });
 
-const { webSearchRequests, googleMapsRequests } = detectRequestsFromResult(result);
+// Pass `model` so Google Search grounding is billed per the model's family
+// (Gemini 3 = per query, Gemini 2.5/2.0/1.5 + Vertex = per grounded prompt).
+const { webSearchRequests, googleMapsRequests } = detectRequestsFromResult(result, {
+  model: "gemini-2.0-flash",
+});
 
 // With custom tool names (added to defaults)
 const detected = detectRequestsFromResult(result, {
+  model: "gemini-2.0-flash",
   webSearchTools: ["my_search", "custom_tavily"],
   googleMapsTools: ["location_finder"],
 });
@@ -571,6 +588,7 @@ const detected = detectRequestsFromResult(result, {
 | Parameter              | Type                  | Required | Description                                |
 | ---------------------- | --------------------- | -------- | ------------------------------------------ |
 | `result`               | `ResultWithToolCalls` | Yes      | AI SDK result with toolCalls/steps         |
+| `options.model`            | `LanguageModel \| string` | No   | Model id — required for correct grounding billing |
 | `options.webSearchTools`   | `string[]`        | No       | Additional tool names to count as search   |
 | `options.googleMapsTools`  | `string[]`        | No       | Additional tool names to count as maps     |
 
@@ -584,7 +602,7 @@ import { withDetectedRequests, calculateCost } from "ai-sdk-cost-calculator";
 const cost = calculateCost({
   model: "gemini-2.0-flash",
   usage: result.usage,
-  ...withDetectedRequests(result),
+  ...withDetectedRequests(result, { model: "gemini-2.0-flash" }),
 });
 
 // With custom tool names
@@ -592,6 +610,7 @@ const cost2 = calculateCost({
   model: "gemini-2.0-flash",
   usage: result.usage,
   ...withDetectedRequests(result, {
+    model: "gemini-2.0-flash",
     webSearchTools: ["my_search"],
   }),
 });

@@ -2,6 +2,9 @@
  * Utility for auto-detecting web search and Google Maps requests from AI SDK results
  */
 
+import type { LanguageModel } from "ai";
+import { getModelId } from "./model";
+
 /** Default web search tool names across providers */
 export const DEFAULT_WEB_SEARCH_TOOLS = [
   "web_search",
@@ -108,6 +111,25 @@ export interface DetectOptions {
   collectionsSearchTools?: string[];
   /** Additional tool names to count as image generation (added to defaults) */
   imageGenerationTools?: string[];
+  /**
+   * Model used for the request. Required to bill Google Search grounding
+   * correctly: the Gemini 3 family is charged per individual search query,
+   * while Gemini 2.5/2.0/1.5 (and the same models on Vertex AI) are charged
+   * once per grounded prompt regardless of how many queries the model issued.
+   * When omitted, grounding defaults to the conservative per-prompt count.
+   */
+  model?: LanguageModel | string;
+}
+
+/**
+ * Google Search grounding billing differs by model family:
+ *   - Gemini 3 family: billed per individual search query
+ *   - Gemini 2.5 / 2.0 / 1.5 (incl. Vertex AI): billed per grounded prompt
+ * See https://ai.google.dev/gemini-api/docs/pricing.
+ */
+function billsGroundingPerQuery(model: LanguageModel | string | undefined): boolean {
+  if (!model) return false;
+  return getModelId(model).startsWith("gemini-3");
 }
 
 interface ToolCall {
@@ -132,10 +154,16 @@ interface GroundingMetadata {
   placeAnnotations?: unknown[];
 }
 
+interface GroundingNamespace {
+  groundingMetadata?: GroundingMetadata;
+}
+
 interface ProviderMetadata {
-  google?: {
-    groundingMetadata?: GroundingMetadata;
-  };
+  // @ai-sdk/google emits grounding under `google`; @ai-sdk/google-vertex emits
+  // under both `googleVertex` (current) and `vertex` (legacy) — never `google`.
+  google?: GroundingNamespace;
+  googleVertex?: GroundingNamespace;
+  vertex?: GroundingNamespace;
   [key: string]: unknown;
 }
 
@@ -197,7 +225,12 @@ function countToolCalls(
  * Supports:
  * - Tool calls (toolCalls array)
  * - Multi-step generations (steps array)
- * - Google Gemini grounding metadata (experimental_providerMetadata.google.groundingMetadata)
+ * - Google Gemini grounding metadata: @ai-sdk/google under `google`, and
+ *   @ai-sdk/google-vertex under `googleVertex` / `vertex` (Vertex never uses `google`)
+ *
+ * Pass `options.model` so Google Search grounding is billed per the model's
+ * family: Gemini 3 is charged per search query, while Gemini 2.5/2.0/1.5 (and
+ * the same models on Vertex AI) are charged once per grounded prompt.
  *
  * @example
  * ```typescript
@@ -207,11 +240,13 @@ function countToolCalls(
  *   tools: { web_search: webSearchTool },
  * });
  *
- * // Use defaults
- * const { webSearchRequests, googleMapsRequests, imageGenerations } = detectRequestsFromResult(result);
+ * // Pass the model for correct grounding billing
+ * const { webSearchRequests, googleMapsRequests, imageGenerations } =
+ *   detectRequestsFromResult(result, { model: "gemini-2.0-flash" });
  *
  * // Or add custom tool names
  * const detected = detectRequestsFromResult(result, {
+ *   model: "gemini-2.0-flash",
  *   webSearchTools: ["my_search_tool", "custom_search"],
  *   googleMapsTools: ["location_finder"],
  *   imageGenerationTools: ["my_image_gen"],
@@ -260,15 +295,36 @@ export function detectRequestsFromResult(
     }
   }
 
-  // Google Gemini grounding metadata
+  // Google Gemini grounding metadata. The provider metadata namespace differs
+  // by AI SDK provider: @ai-sdk/google writes under `google`, while
+  // @ai-sdk/google-vertex writes under `googleVertex` (current) and `vertex`
+  // (legacy) — never `google`. Check all three so Vertex grounding is detected.
   const providerMetadata = result.experimental_providerMetadata ?? result.providerMetadata;
-  const grounding = providerMetadata?.google?.groundingMetadata;
+  const grounding =
+    providerMetadata?.google?.groundingMetadata ??
+    providerMetadata?.googleVertex?.groundingMetadata ??
+    providerMetadata?.vertex?.groundingMetadata;
   if (grounding) {
-    // Web search: each query is one billable request
-    if (Array.isArray(grounding.webSearchQueries)) {
-      counts.webSearchRequests += grounding.webSearchQueries.length;
-    }
-    if (grounding.searchEntryPoint && counts.webSearchRequests === 0) {
+    const queryCount = Array.isArray(grounding.webSearchQueries)
+      ? grounding.webSearchQueries.length
+      : 0;
+    // A prompt counts as grounded if any web-search signal is present.
+    const grounded =
+      queryCount > 0 ||
+      grounding.searchEntryPoint != null ||
+      (Array.isArray(grounding.groundingChunks) && grounding.groundingChunks.length > 0) ||
+      (Array.isArray(grounding.groundingSupports) && grounding.groundingSupports.length > 0);
+
+    if (billsGroundingPerQuery(options?.model)) {
+      // Gemini 3 family: charged for each individual search query.
+      counts.webSearchRequests += queryCount;
+      if (grounded && counts.webSearchRequests === 0) {
+        // Grounded but no enumerated queries — still one billable use.
+        counts.webSearchRequests = 1;
+      }
+    } else if (grounded && counts.webSearchRequests === 0) {
+      // Gemini 2.5/2.0/1.5 (and Vertex): one billable charge per grounded
+      // prompt, regardless of how many queries the model issued internally.
       counts.webSearchRequests = 1;
     }
     // Maps grounding: any of these signals indicates the prompt was grounded
@@ -299,7 +355,7 @@ export function detectRequestsFromResult(
  * const cost = calculateCost({
  *   model: "gemini-2.0-flash",
  *   usage: result.usage,
- *   ...withDetectedRequests(result),
+ *   ...withDetectedRequests(result, { model: "gemini-2.0-flash" }),
  * });
  *
  * // With custom tool names
@@ -307,6 +363,7 @@ export function detectRequestsFromResult(
  *   model: "gemini-2.0-flash",
  *   usage: result.usage,
  *   ...withDetectedRequests(result, {
+ *     model: "gemini-2.0-flash",
  *     webSearchTools: ["my_search"],
  *     imageGenerationTools: ["my_image_gen"],
  *   }),

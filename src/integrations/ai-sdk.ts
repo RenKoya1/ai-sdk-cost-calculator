@@ -69,8 +69,11 @@ export interface CostAwareOptions extends DetectOptions {
 function resolveRequestCounts(
   result: ResultWithToolCalls | undefined,
   options: CostAwareOptions | undefined,
+  modelId: string,
 ) {
-  const detected = result ? detectRequestsFromResult(result, options) : undefined;
+  const detected = result
+    ? detectRequestsFromResult(result, { ...options, model: modelId })
+    : undefined;
   return {
     webSearchRequests: options?.webSearchRequests ?? detected?.webSearchRequests,
     googleMapsRequests: options?.googleMapsRequests ?? detected?.googleMapsRequests,
@@ -93,7 +96,7 @@ function computeCost(args: {
   options: CostAwareOptions | undefined;
   result?: ResultWithToolCalls;
 }): CostBreakdown {
-  const counts = resolveRequestCounts(args.result, args.options);
+  const counts = resolveRequestCounts(args.result, args.options, args.modelId);
   let cost = calculateCost({
     model: args.modelId,
     usage: args.usage,
