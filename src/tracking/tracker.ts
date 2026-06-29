@@ -1,11 +1,15 @@
 import type { LanguageModelUsage, LanguageModel } from "ai";
 import { calculateCost } from "../core/calculator";
-import type { CostBreakdown } from "../core/types";
+import type {
+  CostBreakdown,
+  CostModifierOptions,
+  RequestCountOptions,
+} from "../core/types";
 import { buildAdditionalCost } from "../integrations/ai-sdk";
 import type { ModelPricing } from "../pricing";
 import { addCostBreakdowns, roundCostBreakdown, multiplyCostBreakdown, emptyCostBreakdown } from "../shared/cost";
 import {
-  detectRequestsFromResult,
+  withDetectedRequests,
   type DetectOptions,
   type ResultWithToolCalls,
 } from "../shared/detect-requests";
@@ -20,29 +24,10 @@ import {
 /**
  * Options for adding usage to the tracker
  */
-export interface AddUsageOptions extends DetectOptions {
-  /** Number of web search requests made */
-  webSearchRequests?: number;
-  /** Number of Google Maps API requests made */
-  googleMapsRequests?: number;
-  /** Number of xAI X Search requests */
-  xSearchRequests?: number;
-  /** Number of xAI Code Execution requests */
-  codeExecutionRequests?: number;
-  /** Number of xAI Document Search requests */
-  documentSearchRequests?: number;
-  /** Number of xAI Collections Search requests */
-  collectionsSearchRequests?: number;
-  /** Number of images generated */
-  imageGenerations?: number;
-  /** Image size/quality for pricing lookup */
-  imageSize?: string;
-  /** Audio input tokens (subset of usage.inputTokens) */
-  audioInputTokens?: number;
-  /** Audio output tokens (subset of usage.outputTokens) */
-  audioOutputTokens?: number;
-  /** Token-hours of context cache storage (Gemini) */
-  cacheStorageTokenHours?: number;
+export interface AddUsageOptions
+  extends DetectOptions,
+    RequestCountOptions,
+    CostModifierOptions {
   /** Multiply all cost values by this factor (e.g., 1.5 for 150% markup) */
   costMultiplier?: number;
 }
@@ -255,16 +240,14 @@ export function createMultiModelTracker(
       const modelId = getModelId(model);
 
       return async (result: T) => {
-        const detected = detectRequestsFromResult(
+        // Merge manual counts with auto-detected ones for all request types.
+        // Manual values always win. withDetectedRequests is the single source
+        // of this merge, shared with the AI SDK integration helpers.
+        const counts = withDetectedRequests(
           result as unknown as ResultWithToolCalls,
           { ...opts, model: modelId },
         );
-        const enrichedOpts: AddUsageOptions = {
-          ...opts,
-          webSearchRequests: opts?.webSearchRequests ?? detected.webSearchRequests,
-          googleMapsRequests: opts?.googleMapsRequests ?? detected.googleMapsRequests,
-          imageGenerations: opts?.imageGenerations ?? detected.imageGenerations,
-        };
+        const enrichedOpts: AddUsageOptions = { ...opts, ...counts };
 
         const cost = this.add(modelId, result.usage, enrichedOpts);
         if (callback) {

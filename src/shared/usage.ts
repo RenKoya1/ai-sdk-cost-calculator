@@ -60,6 +60,20 @@ export function totalsToUsage(totals: UsageTokenTotals): LanguageModelUsage {
   };
 }
 
+/** AI SDK 7 removed the deprecated top-level `cachedInputTokens` and
+ * `reasoningTokens` fields from `LanguageModelUsage` — that data now lives in
+ * `inputTokenDetails` / `outputTokenDetails`. Usage objects produced by AI SDK
+ * 6 (or by providers that still set the legacy fields) may populate them at
+ * runtime, so we read them defensively via a structural cast to stay
+ * backward compatible without referencing the removed type members. */
+function legacyUsageField(
+  usage: LanguageModelUsage,
+  key: "cachedInputTokens" | "reasoningTokens",
+): number | undefined {
+  const value = (usage as Record<string, unknown>)[key];
+  return typeof value === "number" ? value : undefined;
+}
+
 /** Clamp negative token counts to 0. Some AI SDK providers (notably Google
  * with context caching) can report `noCacheTokens` as negative when
  * cachedContentTokenCount exceeds promptTokenCount (the cache blob is
@@ -73,9 +87,9 @@ export function getUsageTokenDetails(
   const inputDetails = usage.inputTokenDetails;
   const outputDetails = usage.outputTokenDetails;
 
-  // Cache read: prefer details, fall back to deprecated top-level cachedInputTokens
+  // Cache read: prefer details, fall back to legacy top-level cachedInputTokens
   const cacheReadTokens = nonNegative(
-    inputDetails?.cacheReadTokens ?? usage.cachedInputTokens ?? 0,
+    inputDetails?.cacheReadTokens ?? legacyUsageField(usage, "cachedInputTokens") ?? 0,
   );
   const cacheWriteTokens = nonNegative(inputDetails?.cacheWriteTokens ?? 0);
 
@@ -94,9 +108,9 @@ export function getUsageTokenDetails(
     noCacheTokens = 0;
   }
 
-  // reasoningTokens: prefer details, fall back to deprecated top-level
+  // reasoningTokens: prefer details, fall back to legacy top-level
   const reasoningTokens = nonNegative(
-    outputDetails?.reasoningTokens ?? usage.reasoningTokens ?? 0,
+    outputDetails?.reasoningTokens ?? legacyUsageField(usage, "reasoningTokens") ?? 0,
   );
 
   // textTokens: prefer details. If details exist but textTokens is undefined,
