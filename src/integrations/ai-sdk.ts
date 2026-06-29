@@ -1,6 +1,10 @@
 import type { LanguageModelUsage, LanguageModel } from "ai";
 import { calculateCost } from "../core/calculator";
-import type { CostBreakdown } from "../core/types";
+import type {
+  CostBreakdown,
+  CostModifierOptions,
+  RequestCountOptions,
+} from "../core/types";
 import type { ModelPricing } from "../pricing";
 import {
   addCostBreakdowns,
@@ -9,7 +13,7 @@ import {
   roundToMicroDollars,
 } from "../shared/cost";
 import {
-  detectRequestsFromResult,
+  withDetectedRequests,
   type DetectOptions,
   type ResultWithToolCalls,
 } from "../shared/detect-requests";
@@ -31,31 +35,12 @@ export interface FinishResultWithCost {
   [key: string]: unknown;
 }
 
-export interface CostAwareOptions extends DetectOptions {
+export interface CostAwareOptions
+  extends DetectOptions,
+    RequestCountOptions,
+    CostModifierOptions {
   /** Custom pricing override */
   customPricing?: ModelPricing;
-  /** Number of web search requests */
-  webSearchRequests?: number;
-  /** Number of Google Maps API requests */
-  googleMapsRequests?: number;
-  /** Number of xAI X Search requests */
-  xSearchRequests?: number;
-  /** Number of xAI Code Execution requests */
-  codeExecutionRequests?: number;
-  /** Number of xAI Document Search requests */
-  documentSearchRequests?: number;
-  /** Number of xAI Collections Search requests */
-  collectionsSearchRequests?: number;
-  /** Number of images generated */
-  imageGenerations?: number;
-  /** Image size/quality for pricing lookup */
-  imageSize?: string;
-  /** Audio input tokens (subset of usage.inputTokens) for separate audio billing */
-  audioInputTokens?: number;
-  /** Audio output tokens (subset of usage.outputTokens) for separate audio billing */
-  audioOutputTokens?: number;
-  /** Token-hours of context cache storage (Gemini) */
-  cacheStorageTokenHours?: number;
   /** Multiply all cost values by this factor (e.g., 1.5 for 150% markup) */
   costMultiplier?: number;
   /** Callback when cost is calculated */
@@ -71,17 +56,20 @@ function resolveRequestCounts(
   options: CostAwareOptions | undefined,
   modelId: string,
 ) {
-  const detected = result
-    ? detectRequestsFromResult(result, { ...options, model: modelId })
-    : undefined;
+  // With a result to inspect, withDetectedRequests is the single source for
+  // merging manual + auto-detected counts (manual wins) across all request
+  // types. Without a result there is nothing to detect — pass manual through.
+  if (result) {
+    return withDetectedRequests(result, { ...options, model: modelId });
+  }
   return {
-    webSearchRequests: options?.webSearchRequests ?? detected?.webSearchRequests,
-    googleMapsRequests: options?.googleMapsRequests ?? detected?.googleMapsRequests,
-    xSearchRequests: options?.xSearchRequests ?? detected?.xSearchRequests,
-    codeExecutionRequests: options?.codeExecutionRequests ?? detected?.codeExecutionRequests,
-    documentSearchRequests: options?.documentSearchRequests ?? detected?.documentSearchRequests,
-    collectionsSearchRequests: options?.collectionsSearchRequests ?? detected?.collectionsSearchRequests,
-    imageGenerations: options?.imageGenerations ?? detected?.imageGenerations,
+    webSearchRequests: options?.webSearchRequests,
+    googleMapsRequests: options?.googleMapsRequests,
+    xSearchRequests: options?.xSearchRequests,
+    codeExecutionRequests: options?.codeExecutionRequests,
+    documentSearchRequests: options?.documentSearchRequests,
+    collectionsSearchRequests: options?.collectionsSearchRequests,
+    imageGenerations: options?.imageGenerations,
   };
 }
 

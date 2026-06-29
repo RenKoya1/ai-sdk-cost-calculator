@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.0.0] - 2026-06-29
+
+### Changed
+
+- Align the package major version with the targeted AI SDK generation: `7.x`
+  tracks AI SDK 7. The version number now signals which AI SDK major this
+  package is developed and tested against.
+- Develop and test against `ai@^7.0.0`.
+
+### Fixed
+
+- AI SDK 7 removed the deprecated top-level `cachedInputTokens` and
+  `reasoningTokens` fields from `LanguageModelUsage`. Token detail extraction
+  now reads those legacy fields defensively, preserving runtime compatibility
+  with both AI SDK 6 and 7 usage objects.
+
+### Compatibility
+
+- `peerDependencies.ai` remains `>=6.0.0`; this package works with AI SDK 6
+  and 7 usage objects. ESM and CommonJS builds are unchanged.
+
 ## [0.1.0] - 2026-01-17
 
 ### Added

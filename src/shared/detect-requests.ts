@@ -2,7 +2,7 @@
  * Utility for auto-detecting web search and Google Maps requests from AI SDK results
  */
 
-import type { LanguageModel } from "ai";
+import type { GenerateTextResult, LanguageModel, ProviderMetadata } from "ai";
 import { getModelId } from "./model";
 
 /** Default web search tool names across providers */
@@ -158,13 +158,16 @@ interface GroundingNamespace {
   groundingMetadata?: GroundingMetadata;
 }
 
-interface ProviderMetadata {
-  // @ai-sdk/google emits grounding under `google`; @ai-sdk/google-vertex emits
-  // under both `googleVertex` (current) and `vertex` (legacy) — never `google`.
+/**
+ * Typed view over AI SDK's loosely-typed `ProviderMetadata`
+ * (`Record<string, JSONObject>`) for the grounding namespaces we read:
+ * @ai-sdk/google emits grounding under `google`; @ai-sdk/google-vertex emits
+ * under both `googleVertex` (current) and `vertex` (legacy) — never `google`.
+ */
+interface GroundingProviderMetadata {
   google?: GroundingNamespace;
   googleVertex?: GroundingNamespace;
   vertex?: GroundingNamespace;
-  [key: string]: unknown;
 }
 
 interface GeneratedFileLike {
@@ -172,12 +175,29 @@ interface GeneratedFileLike {
   mimeType?: string;
 }
 
-export interface ResultWithToolCalls {
-  toolCalls?: ToolCall[];
-  steps?: Step[];
-  files?: GeneratedFileLike[];
-  experimental_providerMetadata?: ProviderMetadata;
+/**
+ * Inspectable subset of an AI SDK `generateText`/`streamText` result. Inherits
+ * the field shapes (`toolCalls`, `steps`, `files`, `providerMetadata`) directly
+ * from AI SDK's {@link GenerateTextResult} so they stay in sync with the SDK; a
+ * real result is assignable without casting. All fields are optional because
+ * detection is best-effort across providers and SDK versions.
+ */
+export interface ResultWithToolCalls
+  extends Partial<
+    Pick<GenerateTextResult<any, any, any>, "toolCalls" | "steps" | "files">
+  > {
+  /**
+   * Provider metadata, typed as AI SDK's `ProviderMetadata`. Declared here
+   * (rather than picked from `GenerateTextResult`) so we can read it top-level
+   * for cross-provider grounding detection without inheriting the SDK's
+   * `@deprecated` tag (the SDK steers single results to `finalStep`).
+   */
   providerMetadata?: ProviderMetadata;
+  /**
+   * AI SDK <5 / experimental provider-metadata namespace. Newer results expose
+   * `providerMetadata`; this is read as a fallback for backward compatibility.
+   */
+  experimental_providerMetadata?: ProviderMetadata;
 }
 
 function getToolName(toolCall: ToolCall): string | undefined {
@@ -287,8 +307,9 @@ export function detectRequestsFromResult(
   // Native image generation (e.g., Gemini Image models) returns images via
   // result.files rather than tool calls. Count files with image mediaType.
   if (Array.isArray(result.files)) {
-    for (const file of result.files) {
-      const mt = file?.mediaType ?? file?.mimeType;
+    for (const rawFile of result.files) {
+      const file: GeneratedFileLike = rawFile;
+      const mt = file.mediaType ?? file.mimeType;
       if (typeof mt === "string" && mt.startsWith("image/")) {
         counts.imageGenerations++;
       }
@@ -299,7 +320,10 @@ export function detectRequestsFromResult(
   // by AI SDK provider: @ai-sdk/google writes under `google`, while
   // @ai-sdk/google-vertex writes under `googleVertex` (current) and `vertex`
   // (legacy) — never `google`. Check all three so Vertex grounding is detected.
-  const providerMetadata = result.experimental_providerMetadata ?? result.providerMetadata;
+  // AI SDK types providerMetadata loosely as Record<string, JSONObject>; narrow
+  // to the grounding namespaces we read.
+  const providerMetadata = (result.experimental_providerMetadata ??
+    result.providerMetadata) as GroundingProviderMetadata | undefined;
   const grounding =
     providerMetadata?.google?.groundingMetadata ??
     providerMetadata?.googleVertex?.groundingMetadata ??

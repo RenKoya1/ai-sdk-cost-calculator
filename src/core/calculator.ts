@@ -1,9 +1,12 @@
-import { LanguageModelUsage } from "ai";
+import type { LanguageModel, LanguageModelUsage } from "ai";
 import { getModelPricingByModelId, type ModelPricing } from "../pricing";
+import { getModelId } from "../shared/model";
 import {
   COST_COMPONENT_FIELDS,
   type CostBreakdown,
   type CostComponentField,
+  type CostModifierOptions,
+  type RequestCountOptions,
 } from "./types";
 import { roundToMicroDollars } from "../shared/cost";
 import { getUsageTokenDetails } from "../shared/usage";
@@ -12,43 +15,13 @@ const TOKENS_PER_MILLION = 1_000_000;
 
 export type { CostBreakdown } from "./types";
 
-export interface CalculateCostOptions {
-  model: string;
+export interface CalculateCostOptions
+  extends RequestCountOptions,
+    CostModifierOptions {
+  /** Model id string or an AI SDK `LanguageModel` (its `modelId` is used). */
+  model: LanguageModel | string;
   usage: LanguageModelUsage;
   customPricing?: ModelPricing;
-  /** Number of web search requests made (for grounding/live search) */
-  webSearchRequests?: number;
-  /** Number of Google Maps API requests made */
-  googleMapsRequests?: number;
-  /** Number of xAI X Search requests made */
-  xSearchRequests?: number;
-  /** Number of xAI Code Execution requests made */
-  codeExecutionRequests?: number;
-  /** Number of xAI Document Search requests made */
-  documentSearchRequests?: number;
-  /** Number of xAI Collections Search requests made */
-  collectionsSearchRequests?: number;
-  /** Number of images generated */
-  imageGenerations?: number;
-  /** Image size/quality for pricing lookup (e.g., "1024x1024", "hd-1024x1024") */
-  imageSize?: string;
-  /**
-   * Audio input tokens. Subset of usage.inputTokens (noCacheTokens). When
-   * provided AND model has audioInputPer1MTokens, charged at audio rate;
-   * subtracted from regular input charge to avoid double counting.
-   */
-  audioInputTokens?: number;
-  /**
-   * Audio output tokens. Subset of usage.outputTokens (textTokens). When
-   * provided AND model has audioOutputPer1MTokens, charged at audio rate;
-   * subtracted from regular output charge.
-   */
-  audioOutputTokens?: number;
-  /**
-   * Token-hours of context cache storage. token-hours = cached_tokens × hours.
-   * Charged at cacheStoragePer1MTokensPerHour (Gemini context caching).
-   */
-  cacheStorageTokenHours?: number;
 }
 
 interface EffectivePricing {
@@ -125,11 +98,12 @@ export function calculateCost(options: CalculateCostOptions): CostBreakdown {
     cacheStorageTokenHours = 0,
   } = options;
 
-  const pricing = customPricing ?? getModelPricingByModelId(model);
+  const modelId = getModelId(model);
+  const pricing = customPricing ?? getModelPricingByModelId(modelId);
 
   if (!pricing) {
     throw new Error(
-      `Unknown model: ${model}. Use customPricing option or add the model to pricing/providers`,
+      `Unknown model: ${modelId}. Use customPricing option or add the model to pricing/providers`,
     );
   }
 
