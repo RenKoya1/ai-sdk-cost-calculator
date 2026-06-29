@@ -75,12 +75,17 @@ function resolveRequestCounts(
     ? detectRequestsFromResult(result, { ...options, model: modelId })
     : undefined;
   return {
-    webSearchRequests: options?.webSearchRequests ?? detected?.webSearchRequests,
-    googleMapsRequests: options?.googleMapsRequests ?? detected?.googleMapsRequests,
+    webSearchRequests:
+      options?.webSearchRequests ?? detected?.webSearchRequests,
+    googleMapsRequests:
+      options?.googleMapsRequests ?? detected?.googleMapsRequests,
     xSearchRequests: options?.xSearchRequests ?? detected?.xSearchRequests,
-    codeExecutionRequests: options?.codeExecutionRequests ?? detected?.codeExecutionRequests,
-    documentSearchRequests: options?.documentSearchRequests ?? detected?.documentSearchRequests,
-    collectionsSearchRequests: options?.collectionsSearchRequests ?? detected?.collectionsSearchRequests,
+    codeExecutionRequests:
+      options?.codeExecutionRequests ?? detected?.codeExecutionRequests,
+    documentSearchRequests:
+      options?.documentSearchRequests ?? detected?.documentSearchRequests,
+    collectionsSearchRequests:
+      options?.collectionsSearchRequests ?? detected?.collectionsSearchRequests,
     imageGenerations: options?.imageGenerations ?? detected?.imageGenerations,
   };
 }
@@ -174,7 +179,11 @@ export interface CostAwareAI {
 
 export interface CreateCostAwareAIOptions {
   customPricing?: Record<string, ModelPricing>;
-  onCost?: (model: string, cost: CostBreakdown, usage: LanguageModelUsage) => void;
+  onCost?: (
+    model: string,
+    cost: CostBreakdown,
+    usage: LanguageModelUsage,
+  ) => void;
 }
 
 interface ModelStats {
@@ -198,7 +207,11 @@ const EMPTY_USAGE_FOR_ADDITIONAL: LanguageModelUsage = {
   inputTokens: 0,
   outputTokens: 0,
   totalTokens: 0,
-  inputTokenDetails: { noCacheTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
+  inputTokenDetails: {
+    noCacheTokens: 0,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+  },
   outputTokenDetails: { textTokens: 0, reasoningTokens: 0 },
 };
 
@@ -280,7 +293,10 @@ export function createCostAwareAI(
       for (const stats of modelStats.values()) {
         total = addCostBreakdowns(total, stats.cost);
       }
-      const additionalTotal = additionalCosts.reduce((sum, c) => sum + c.amount, 0);
+      const additionalTotal = additionalCosts.reduce(
+        (sum, c) => sum + c.amount,
+        0,
+      );
       total.additionalCost += additionalTotal;
       total.totalCost += additionalTotal;
       return total;

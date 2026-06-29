@@ -59,6 +59,18 @@ describe("detectRequestsFromResult — Google Search grounding billing", () => {
     expect(webSearchRequests).toBe(1);
   });
 
+  it("Gemini 3 does not double-count a grounded prompt that also surfaces as a tool call", () => {
+    const result = {
+      steps: [{ toolCalls: [{ toolName: "googleSearch" }] }],
+      providerMetadata: { google: { groundingMetadata: threeQueries } },
+    } as ResultWithToolCalls;
+    const { webSearchRequests } = detectRequestsFromResult(result, {
+      model: "gemini-3-pro",
+    });
+    // 3 queries, not 1 (tool call) + 3 (queries)
+    expect(webSearchRequests).toBe(3);
+  });
+
   it("defaults to the conservative per-prompt count when model is omitted", () => {
     const { webSearchRequests } = detectRequestsFromResult(groundedResult(threeQueries));
     expect(webSearchRequests).toBe(1);

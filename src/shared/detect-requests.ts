@@ -316,9 +316,14 @@ export function detectRequestsFromResult(
       (Array.isArray(grounding.groundingSupports) && grounding.groundingSupports.length > 0);
 
     if (billsGroundingPerQuery(options?.model)) {
-      // Gemini 3 family: charged for each individual search query.
-      counts.webSearchRequests += queryCount;
-      if (grounded && counts.webSearchRequests === 0) {
+      // Gemini 3 family: charged for each individual search query. The grounding
+      // metadata is authoritative for this grounding activity, so take the
+      // larger of the enumerated query count and any tool-call count rather than
+      // summing — summing would double-count a single grounded prompt that also
+      // surfaced as a `googleSearch`/`grounding` tool call.
+      if (queryCount > 0) {
+        counts.webSearchRequests = Math.max(counts.webSearchRequests, queryCount);
+      } else if (grounded && counts.webSearchRequests === 0) {
         // Grounded but no enumerated queries — still one billable use.
         counts.webSearchRequests = 1;
       }
