@@ -2,7 +2,12 @@
  * Utility for auto-detecting web search and Google Maps requests from AI SDK results
  */
 
-import type { GenerateTextResult, LanguageModel, ProviderMetadata } from "ai";
+import type {
+  DeepPartial,
+  GenerateTextResult,
+  LanguageModel,
+  ProviderMetadata,
+} from "ai";
 import { getModelId } from "./model";
 
 /** Default web search tool names across providers */
@@ -179,13 +184,18 @@ interface GeneratedFileLike {
  * Inspectable subset of an AI SDK `generateText`/`streamText` result. Inherits
  * the field shapes (`toolCalls`, `steps`, `files`, `providerMetadata`) directly
  * from AI SDK's {@link GenerateTextResult} so they stay in sync with the SDK; a
- * real result is assignable without casting. All fields are optional because
- * detection is best-effort across providers and SDK versions.
+ * real result is assignable without casting.
+ *
+ * Wrapped in AI SDK's own {@link DeepPartial} (not a shallow `Partial`) so the
+ * nested shapes are optional all the way down: detection only reads
+ * `step.toolCalls[].toolName` and `file.mediaType`, and across providers / SDK
+ * versions a real result may omit the other (now-required in v7) `StepResult`
+ * fields. DeepPartial keeps the SDK as the source of truth while letting a
+ * minimal `{ steps: [{ toolCalls: [{ toolName }] }] }` stay assignable.
  */
-export interface ResultWithToolCalls
-  extends Partial<
-    Pick<GenerateTextResult<any, any, any>, "toolCalls" | "steps" | "files">
-  > {
+export type ResultWithToolCalls = DeepPartial<
+  Pick<GenerateTextResult<any, any, any>, "toolCalls" | "steps" | "files">
+> & {
   /**
    * Provider metadata, typed as AI SDK's `ProviderMetadata`. Declared here
    * (rather than picked from `GenerateTextResult`) so we can read it top-level
@@ -198,7 +208,7 @@ export interface ResultWithToolCalls
    * `providerMetadata`; this is read as a fallback for backward compatibility.
    */
   experimental_providerMetadata?: ProviderMetadata;
-}
+};
 
 function getToolName(toolCall: ToolCall): string | undefined {
   return toolCall.toolName ?? toolCall.name ?? toolCall.type;
@@ -222,12 +232,13 @@ interface MatcherEntry {
 }
 
 function countToolCalls(
-  toolCalls: ToolCall[] | undefined,
+  toolCalls: ReadonlyArray<ToolCall | undefined> | undefined,
   matchers: readonly MatcherEntry[],
   counts: DetectedRequests,
 ): void {
   if (!toolCalls || !Array.isArray(toolCalls)) return;
   for (const toolCall of toolCalls) {
+    if (!toolCall) continue;
     const name = getToolName(toolCall);
     if (!name) continue;
     for (const { match, field } of matchers) {
@@ -300,6 +311,7 @@ export function detectRequestsFromResult(
   countToolCalls(result.toolCalls, matchers, counts);
   if (result.steps && Array.isArray(result.steps)) {
     for (const step of result.steps) {
+      if (!step) continue;
       countToolCalls(step.toolCalls, matchers, counts);
     }
   }
@@ -308,6 +320,7 @@ export function detectRequestsFromResult(
   // result.files rather than tool calls. Count files with image mediaType.
   if (Array.isArray(result.files)) {
     for (const rawFile of result.files) {
+      if (!rawFile) continue;
       const file: GeneratedFileLike = rawFile;
       const mt = file.mediaType ?? file.mimeType;
       if (typeof mt === "string" && mt.startsWith("image/")) {
