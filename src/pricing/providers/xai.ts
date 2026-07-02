@@ -81,6 +81,16 @@ export const xaiPricing: ProviderPricing = {
     documentSearchPer1kRequests: 5,
     collectionsSearchPer1kRequests: 2.5,
   },
+  "grok-4.20-multi-agent": {
+    inputPer1MTokens: 1.25,
+    outputPer1MTokens: 2.5,
+    cacheReadPer1MTokens: 0.2,
+    webSearchPer1kRequests: 5,
+    xSearchPer1kRequests: 5,
+    codeExecutionPer1kRequests: 5,
+    documentSearchPer1kRequests: 5,
+    collectionsSearchPer1kRequests: 2.5,
+  },
   // Grok 4 - Flagship model (256K context, tools: $5/1k each)
   "grok-4": {
     inputPer1MTokens: 3,
@@ -158,11 +168,22 @@ export const xaiPricing: ProviderPricing = {
     documentSearchPer1kRequests: 5,
     collectionsSearchPer1kRequests: 2.5,
   },
-  // Grok Code Fast (256K context)
+  // Grok Build 0.1 (256K context) — coding/agentic model.
+  // grok-code-fast-1 / grok-code-fast now route here at this pricing.
+  "grok-build-0.1": {
+    inputPer1MTokens: 1,
+    outputPer1MTokens: 2,
+    cacheReadPer1MTokens: 0.2,
+  },
   "grok-code-fast-1": {
-    inputPer1MTokens: 0.2,
-    outputPer1MTokens: 1.5,
-    cacheReadPer1MTokens: 0.05,
+    inputPer1MTokens: 1,
+    outputPer1MTokens: 2,
+    cacheReadPer1MTokens: 0.2,
+  },
+  "grok-code-fast": {
+    inputPer1MTokens: 1,
+    outputPer1MTokens: 2,
+    cacheReadPer1MTokens: 0.2,
   },
   // Grok 3 - Previous generation (131K context, tools: $5/1k each)
   "grok-3": {
@@ -304,4 +325,6 @@ export const xaiPricing: ProviderPricing = {
     inputPer1MTokens: 5,
     outputPer1MTokens: 15,
   },
+  // TODO: grok-imagine-video ($0.05/sec) and grok-imagine-video-1.5 ($0.08/sec)
+  // need a videoGenerationPerSecond pricing type before they can be added.
 };

@@ -24,6 +24,11 @@ export const mistralPricing: ProviderPricing = {
     inputPer1MTokens: 0.4,
     outputPer1MTokens: 2,
   },
+  // Mistral Medium 3.5 (Apr 2026)
+  "mistral-medium-2604": {
+    inputPer1MTokens: 1.5,
+    outputPer1MTokens: 7.5,
+  },
   "mistral-medium-2508": {
     inputPer1MTokens: 0.4,
     outputPer1MTokens: 2,
@@ -85,6 +90,10 @@ export const mistralPricing: ProviderPricing = {
   "ministral-8b-2512": {
     inputPer1MTokens: 0.15,
     outputPer1MTokens: 0.15,
+  },
+  "ministral-14b-2512": {
+    inputPer1MTokens: 0.2,
+    outputPer1MTokens: 0.2,
   },
   "ministral-8b": {
     inputPer1MTokens: 0.1,

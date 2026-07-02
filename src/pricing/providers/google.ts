@@ -1,6 +1,6 @@
 import type { ProviderPricing } from "../types";
 
-// Source: https://ai.google.dev/gemini-api/docs/pricing (Apr 2026)
+// Source: https://ai.google.dev/gemini-api/docs/pricing (Jul 2026)
 // Grounding with Google Search:
 //   - Gemini 3 family: 5,000 queries/month free (shared across Gemini 3), then $14/1k
 //   - Gemini 2.5 family: 1,500 RPD free, then $35/1k
@@ -66,6 +66,27 @@ export const googlePricing: ProviderPricing = {
     longContextCacheReadPer1MTokens: 0.4,
     webSearchPer1kRequests: 14,
     googleMapsPer1kRequests: 14,
+  },
+  // Gemini 3 Pro Image (stable "Nano Banana Pro", GA 2026-05-28)
+  // Same pricing as the preview; preview ID shut down 2026-06-25
+  "gemini-3-pro-image": {
+    inputPer1MTokens: 2,
+    outputPer1MTokens: 12,
+    reasoningPer1MTokens: 12,
+    imageOutputPer1MTokens: 120,
+    imageOutputTokensBySize: {
+      "1K": 1120,
+      "2K": 1120,
+      "4K": 2000,
+    },
+    imageGenerationPricing: {
+      "1K": 0.134,
+      "2K": 0.134,
+      "4K": 0.24,
+    },
+    imageGenerationPerImage: 0.134,
+    imageOutputDefaultSize: "1K",
+    webSearchPer1kRequests: 14,
   },
   // Gemini 3 Pro Image Preview - Native image generation
   // Image output: $120/1M tokens. 1K/2K = 1120 tokens ($0.134), 4K = 2000 tokens ($0.24)
@@ -195,6 +216,22 @@ export const googlePricing: ProviderPricing = {
     cacheStoragePer1MTokensPerHour: 1,
     webSearchPer1kRequests: 14,
     googleMapsPer1kRequests: 14,
+  },
+  // Gemini 3.1 Flash Lite Image ("Nano Banana Lite", GA 2026-06-30)
+  // Input: $0.25/1M, Text output: $1.50/1M, Image output: $30/1M tokens
+  // Image: $0.0336 per 1K-resolution image (1120 tokens)
+  "gemini-3.1-flash-lite-image": {
+    inputPer1MTokens: 0.25,
+    outputPer1MTokens: 1.5,
+    imageOutputPer1MTokens: 30,
+    imageOutputTokensBySize: {
+      "1K": 1120,
+    },
+    imageGenerationPricing: {
+      "1K": 0.0336,
+    },
+    imageGenerationPerImage: 0.0336,
+    imageOutputDefaultSize: "1K",
   },
   // Gemini 2.5 Pro - with long context pricing (grounding: $35/1k, maps: $25/1k)
   // Output price includes thinking tokens. Cache storage: $4.50/1M tokens/hour
@@ -460,6 +497,41 @@ export const googlePricing: ProviderPricing = {
     audioInputPer1MTokens: 3,
     outputPer1MTokens: 2,
     audioOutputPer1MTokens: 12,
+  },
+  // Gemini 3.5 Live Translate Preview - Speech-to-speech translation
+  // Audio input: $3.50/1M, Audio output: $21/1M
+  "gemini-3.5-live-translate-preview": {
+    inputPer1MTokens: 3.5,
+    audioInputPer1MTokens: 3.5,
+    outputPer1MTokens: 21,
+    audioOutputPer1MTokens: 21,
+  },
+  // Gemini Embedding 2 (GA 2026-04-22) - text embeddings ($0.20/1M input)
+  "gemini-embedding-2": {
+    inputPer1MTokens: 0.2,
+    outputPer1MTokens: 0,
+  },
+  // Gemini Robotics ER 1.6 Preview
+  "gemini-robotics-er-1.6-preview": {
+    inputPer1MTokens: 1,
+    audioInputPer1MTokens: 2,
+    outputPer1MTokens: 5,
+  },
+  // Imagen 4 (deprecated 2026-06-15, shutdown 2026-08-17)
+  "imagen-4.0-generate-001": {
+    inputPer1MTokens: 0,
+    outputPer1MTokens: 0,
+    imageGenerationPerImage: 0.04,
+  },
+  "imagen-4.0-ultra-generate-001": {
+    inputPer1MTokens: 0,
+    outputPer1MTokens: 0,
+    imageGenerationPerImage: 0.06,
+  },
+  "imagen-4.0-fast-generate-001": {
+    inputPer1MTokens: 0,
+    outputPer1MTokens: 0,
+    imageGenerationPerImage: 0.02,
   },
   // TODO: Add video and music generation models with new pricing types
   // Veo 3/3.1 - Video generation: $0.40-0.75 per second (requires videoGenerationPerSecond)

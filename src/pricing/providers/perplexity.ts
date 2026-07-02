@@ -42,4 +42,21 @@ export const perplexityPricing: ProviderPricing = {
     reasoningPer1MTokens: 8,
     webSearchPer1kRequests: 5,
   },
+  // Embeddings (GA Feb 2026)
+  "pplx-embed-v1-0.6b": {
+    inputPer1MTokens: 0.004,
+    outputPer1MTokens: 0,
+  },
+  "pplx-embed-v1-4b": {
+    inputPer1MTokens: 0.03,
+    outputPer1MTokens: 0,
+  },
+  "pplx-embed-context-v1-0.6b": {
+    inputPer1MTokens: 0.008,
+    outputPer1MTokens: 0,
+  },
+  "pplx-embed-context-v1-4b": {
+    inputPer1MTokens: 0.05,
+    outputPer1MTokens: 0,
+  },
 };

@@ -5,6 +5,30 @@ import type { ProviderPricing } from "../types";
 // Tiered pricing simplified to base (lowest input-length) tier.
 // Cache read = input * 0.1 where docs state "90% discount", else 0.5x for "50% discount".
 export const qwenPricing: ProviderPricing = {
+  // Qwen3.7 Max — flagship (flat pricing; implicit cache read = 20% of input)
+  "qwen3.7-max": {
+    inputPer1MTokens: 2.5,
+    outputPer1MTokens: 7.5,
+    cacheReadPer1MTokens: 0.5,
+  },
+  // Qwen3.7 Plus — multimodal, tiered by input length (>256K = 3x)
+  "qwen3.7-plus": {
+    inputPer1MTokens: 0.4,
+    outputPer1MTokens: 1.6,
+    cacheReadPer1MTokens: 0.08,
+    longContextThreshold: 256000,
+    longContextInputPer1MTokens: 1.2,
+    longContextOutputPer1MTokens: 4.8,
+  },
+  // Qwen3.6 open-weight models
+  "qwen3.6-35b-a3b": {
+    inputPer1MTokens: 0.375,
+    outputPer1MTokens: 2.25,
+  },
+  "qwen3.6-27b": {
+    inputPer1MTokens: 0.6,
+    outputPer1MTokens: 3.6,
+  },
   // Qwen3 Max
   "qwen3-max": {
     inputPer1MTokens: 1.2,
@@ -109,6 +133,18 @@ export const qwenPricing: ProviderPricing = {
   },
 
   // Omni (multimodal)
+  "qwen3.5-omni-plus": {
+    inputPer1MTokens: 1.4,
+    audioInputPer1MTokens: 11,
+    outputPer1MTokens: 8.3,
+    audioOutputPer1MTokens: 44,
+  },
+  "qwen3.5-omni-flash": {
+    inputPer1MTokens: 0.4,
+    audioInputPer1MTokens: 3,
+    outputPer1MTokens: 2.2,
+    audioOutputPer1MTokens: 11.9,
+  },
   "qwen3-omni-flash": {
     inputPer1MTokens: 0.43,
     outputPer1MTokens: 1.66,

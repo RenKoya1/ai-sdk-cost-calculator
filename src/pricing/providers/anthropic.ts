@@ -1,7 +1,33 @@
 import type { ProviderPricing } from "../types";
 
-// Source: https://docs.anthropic.com/en/docs/about-claude/pricing (Feb 2026)
+// Source: https://docs.anthropic.com/en/docs/about-claude/pricing (Jun 2026)
 export const anthropicPricing: ProviderPricing = {
+  // Claude Fable 5 — most capable model, 1M context (no long-context premium)
+  "claude-fable-5": {
+    inputPer1MTokens: 10,
+    outputPer1MTokens: 50,
+    cacheReadPer1MTokens: 1,
+    cacheWritePer1MTokens: 12.5,
+  },
+  // Claude Opus 4.8 — 1M context at standard pricing (no long-context premium)
+  "claude-opus-4-8": {
+    inputPer1MTokens: 5,
+    outputPer1MTokens: 25,
+    cacheReadPer1MTokens: 0.5,
+    cacheWritePer1MTokens: 6.25,
+  },
+  // Claude Sonnet 5 — standard $3/$15 (intro $2/$10 through 2026-08-31)
+  "claude-sonnet-5": {
+    inputPer1MTokens: 3,
+    outputPer1MTokens: 15,
+    cacheReadPer1MTokens: 0.3,
+    cacheWritePer1MTokens: 3.75,
+    longContextThreshold: 200000,
+    longContextInputPer1MTokens: 6,
+    longContextOutputPer1MTokens: 22.5,
+    longContextCacheReadPer1MTokens: 0.6,
+    longContextCacheWritePer1MTokens: 7.5,
+  },
   // Claude Opus 4.7
   "claude-opus-4-7": {
     inputPer1MTokens: 5,

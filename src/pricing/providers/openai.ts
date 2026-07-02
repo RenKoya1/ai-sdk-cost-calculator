@@ -2,6 +2,25 @@ import type { ProviderPricing } from "../types";
 
 // Source: https://openai.com/api/pricing/ (via pricepertoken.com 2026)
 export const openaiPricing: ProviderPricing = {
+  // GPT-5.6 Series (limited preview 2026-06-26; cache writes billed at 1.25x input)
+  "gpt-5.6-sol": {
+    inputPer1MTokens: 5,
+    outputPer1MTokens: 30,
+    cacheReadPer1MTokens: 0.5,
+    cacheWritePer1MTokens: 6.25,
+  },
+  "gpt-5.6-terra": {
+    inputPer1MTokens: 2.5,
+    outputPer1MTokens: 15,
+    cacheReadPer1MTokens: 0.25,
+    cacheWritePer1MTokens: 3.125,
+  },
+  "gpt-5.6-luna": {
+    inputPer1MTokens: 1,
+    outputPer1MTokens: 6,
+    cacheReadPer1MTokens: 0.1,
+    cacheWritePer1MTokens: 1.25,
+  },
   // GPT-5.5 Series
   "gpt-5.5": {
     inputPer1MTokens: 5,
@@ -73,6 +92,11 @@ export const openaiPricing: ProviderPricing = {
     cacheReadPer1MTokens: 0.005,
   },
   // GPT-5 Chat Latest variants
+  "gpt-5.5-chat-latest": {
+    inputPer1MTokens: 5,
+    outputPer1MTokens: 30,
+    cacheReadPer1MTokens: 0.5,
+  },
   "gpt-5.2-chat-latest": {
     inputPer1MTokens: 1.75,
     outputPer1MTokens: 14,
@@ -89,6 +113,11 @@ export const openaiPricing: ProviderPricing = {
     cacheReadPer1MTokens: 0.125,
   },
   // GPT-5 Codex variants
+  "gpt-5.3-codex": {
+    inputPer1MTokens: 1.75,
+    outputPer1MTokens: 14,
+    cacheReadPer1MTokens: 0.175,
+  },
   "gpt-5.2-codex": {
     inputPer1MTokens: 1.75,
     outputPer1MTokens: 14,
@@ -260,6 +289,14 @@ export const openaiPricing: ProviderPricing = {
     outputPer1MTokens: 1.5,
   },
   // GPT Realtime (audio streaming)
+  // gpt-realtime-2 (2026-05-07): text $4/$24, audio $32/$64, cached $0.40
+  "gpt-realtime-2": {
+    inputPer1MTokens: 4,
+    outputPer1MTokens: 24,
+    cacheReadPer1MTokens: 0.4,
+    audioInputPer1MTokens: 32,
+    audioOutputPer1MTokens: 64,
+  },
   "gpt-realtime-1.5": {
     inputPer1MTokens: 4,
     outputPer1MTokens: 16,
@@ -381,6 +418,19 @@ export const openaiPricing: ProviderPricing = {
     },
   },
   // GPT Image Models
+  // gpt-image-2 (Apr 2026): text in $5/1M, image out $30/1M
+  // Per-image at 1024x1024: low $0.006, medium $0.053, high $0.211
+  "gpt-image-2": {
+    inputPer1MTokens: 5,
+    outputPer1MTokens: 0,
+    imageGenerationPerImage: 0.053, // Default: medium 1024x1024
+    imageGenerationPricing: {
+      "low-1024x1024": 0.006,
+      "1024x1024": 0.053,
+      "high-1024x1024": 0.211,
+      "auto": 0.053,
+    },
+  },
   "gpt-image-1.5": {
     inputPer1MTokens: 5,
     outputPer1MTokens: 10,

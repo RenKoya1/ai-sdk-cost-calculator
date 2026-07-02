@@ -5,6 +5,11 @@ import type { ProviderPricing } from "../types";
 // Free-tier models (glm-4.7-flash, glm-4.5-flash, glm-4.6v-flash) priced at 0.
 export const glmPricing: ProviderPricing = {
   // Text — GLM-5 family
+  "glm-5.2": {
+    inputPer1MTokens: 1.4,
+    outputPer1MTokens: 4.4,
+    cacheReadPer1MTokens: 0.26,
+  },
   "glm-5.1": {
     inputPer1MTokens: 1.4,
     outputPer1MTokens: 4.4,
